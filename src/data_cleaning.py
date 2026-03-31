@@ -6,8 +6,10 @@ def prepare_data(file1="data/raw/IPL_Stats.csv"):
     df = pd.read_csv(file1)
     
     df['Year'] = pd.to_numeric(df['Year'], errors='coerce')
-    df = df[df['Year'] == 2025.0].copy()
-    df = df.drop_duplicates(subset=['Player Name'])
+
+    df = df.sort_values(by='Year', ascending=False)
+
+    df = df.drop_duplicates(subset=['Player Name'], keep='first').copy()
     
     numeric_cols = ['Batting Runs', 'Batting Average', 'Batting Strike Rate', 
                     'Wickets', 'Economy Rate', 'Bowling Average']
