@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import pulp
 
-def calculate_fantasy(df, strategy="Balanced"):
+def calculate_fantasy(df, strategy="Balanced", runs=100, wickets=5):
     print("Calculating Fantasy Scores...")
     bat_weight = 1.0
     bowl_weight = 1.0
@@ -15,17 +15,37 @@ def calculate_fantasy(df, strategy="Balanced"):
         bat_weight = 0.5
         bowl_weight = 1.5
 
-    for col in higher_is_better:
-        min_val = df[col].min()
-        max_val = df[col].max()
-        df[f'norm_{col}'] = (df[col] - min_val) / (max_val - min_val + 1e-6)
+    qualified_batsmen = df[df['Batting Runs'] >= runs]
+    qualified_bowlers = df[df['Wickets'] >= wickets]
 
+
+    for col in higher_is_better:
+     subset = qualified_batsmen if 'Batting' in col else qualified_bowlers
+     if not subset.empty:
+        max_val = subset[col].max()
+        min_val = subset[col].min()
+        threshold_met = (df['Batting Runs'] >= runs) if 'Batting' in col else (df['Wickets'] >= wickets)
+        df[f'norm_{col}'] = np.where(
+            threshold_met,
+            ((df[col] - min_val) / (max_val - min_val + 1e-6)).clip(0, 1),
+            0 
+        )
+     else:
+        df[f'norm_{col}'] = 0
+
+ 
     for col in lower_is_better:
-        valid_bowlers = df[df[col] > 0]
-        if not valid_bowlers.empty:
-            max_val = valid_bowlers[col].max()
-            min_val = valid_bowlers[col].min()
-            df[f'norm_{col}'] = np.where(df[col] > 0, (max_val - df[col]) / (max_val - min_val + 1e-6), 0)
+        if not qualified_bowlers.empty:
+            max_val = qualified_bowlers[col].max()
+            min_val = qualified_bowlers[col].min()
+            
+
+            df[f'norm_{col}'] = np.where(
+                (df['Wickets'] >= wickets) & (df[col] > 0),
+                (max_val - df[col]) / (max_val - min_val + 1e-6),
+                0
+            )
+            df[f'norm_{col}'] = df[f'norm_{col}'].clip(0, 1)
         else:
             df[f'norm_{col}'] = 0
 
@@ -62,7 +82,9 @@ def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None):
     
     prob += pulp.lpSum([player_vars[p] for p in player_names if subrole_dict.get(p) == 'WK']) >= 1, "Min_1_Wicketkeeper"
     prob += pulp.lpSum([player_vars[p] for p in player_names if role_dict.get(p) in ['Bowler', 'All-Rounder']]) >= 5, "Min_5_Bowling_Options"
+    prob += pulp.lpSum([player_vars[p] for p in player_names if role_dict.get(p) in ['Bowler']]) >= 2, "Min_2_Pure_Bowling_Options"
     prob += pulp.lpSum([player_vars[p] for p in player_names if role_dict.get(p) in ['Batsman', 'All-Rounder']]) >= 6, "Min_6_Batting_Options"
+    prob += pulp.lpSum([player_vars[p] for p in player_names if role_dict.get(p) in ['Batsman']]) >= 3, "Min_3_Pure_Batting_Options"
 
     for player in must_include:
         if player in player_vars:
