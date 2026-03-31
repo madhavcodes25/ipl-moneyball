@@ -30,7 +30,7 @@ Our algorithm maximizes the "Total Fantasy Score" while strictly satisfying thes
 ```text
 ├── data/
 │   └── raw/
-│       └── IPL_Stats.csv         # 2025 raw player performance stats
+│       └── IPL_Stats.csv         # Raw player performance stats
 ├── src/
 │   ├── data_cleaning.py          # Data preprocessing and metric normalization
 │   └── optimizer.py              # LP model and objective function definition
