@@ -11,6 +11,9 @@ def load_data():
     return prepare_data()
 
 def main():
+    raw_data = load_data()
+    player_list = sorted(raw_data['Player Name'].dropna().unique().tolist())
+
     with st.sidebar:
         st.header("Strategy Room 🏏")
         st.markdown("Fine-tune your auction constraints.")
@@ -18,6 +21,15 @@ def main():
         with st.form("strategy_form"):
             budget = st.slider("Total Budget (Crores)", 20, 100, 50)
             role_focus = st.selectbox("Team Strategy", ["Balanced", "Batting Heavy", "Bowling Heavy"])
+            
+            st.markdown("---")
+            st.subheader("Retentions")
+            must_include_players = st.multiselect(
+                "Force include up to 11 players:",
+                options=player_list,
+                max_selections=11,
+                help="The AI will build the rest of the team around these retained players."
+            )
             
             st.markdown("---")
             generate_btn = st.form_submit_button("Draft Perfect Team", type="primary", use_container_width=True)
@@ -31,10 +43,14 @@ def main():
         return
 
     with st.spinner("Crunching the numbers and simulating auction bids..."):
-        raw_data = load_data()
         
         scored_data = calculate_fantasy(raw_data, strategy=role_focus)
-        optimal_squad, total_score = optimize_team(scored_data, budget=budget)
+        
+        optimal_squad, total_score = optimize_team(
+            scored_data, 
+            budget=budget,
+            must_include=must_include_players
+        )
         
         if optimal_squad is not None and not optimal_squad.empty:
             spent = optimal_squad['Cost_Cr'].sum()
@@ -67,7 +83,7 @@ def main():
                 fig_bar = px.bar(
                     optimal_squad, 
                     x='Player Name', 
-                    y='Fantasy_Score', 
+                    y='Fitness_Score' if 'Fitness_Score' in optimal_squad.columns else 'Fantasy_Score', 
                     color='Role',
                     title="Player Fantasy Contributions",
                     text_auto='.2f',
@@ -82,7 +98,7 @@ def main():
                optimal_squad, 
                use_container_width=True, 
                hide_index=True,
-             height=450
+               height=450
             )
 
             csv = optimal_squad.to_csv(index=False).encode('utf-8')
@@ -94,7 +110,7 @@ def main():
             )
             
         else:
-            st.error("⚠️ Could not find a valid team with this budget. Try increasing your budget or changing the strategy!")
+            st.error("⚠️ Could not find a valid team! This usually happens if your budget is too low for the players you forced into the squad. Try increasing your budget.")
 
 if __name__ == "__main__":
     main()
