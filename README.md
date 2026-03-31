@@ -1,4 +1,4 @@
-# 🏏 IPL Moneyball AI: Mathematical Team Optimization
+# 🏏 IPL Moneyball: Mathematical Team Optimization
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
