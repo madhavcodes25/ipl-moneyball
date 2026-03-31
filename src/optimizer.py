@@ -38,24 +38,37 @@ def calculate_fantasy(df, strategy="Balanced"):
     
     return df
 
-def optimize_team(df, budget=100.0, max_foreigners=4):
+def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None):
     print("Running PuLP Optimizer...")
+    
+    if must_include is None:
+        must_include = []
+
     prob = pulp.LpProblem("IPL_Moneyball", pulp.LpMaximize)
     player_names = df['Player Name'].tolist()
     player_vars = pulp.LpVariable.dicts("Player", player_names, cat='Binary')
+    
     fantasy_dict = dict(zip(df['Player Name'], df['Fantasy_Score']))
     cost_dict = dict(zip(df['Player Name'], df['Cost_Cr']))
     foreign_dict = dict(zip(df['Player Name'], df['Is_Foreign']))
     subrole_dict = dict(zip(df['Player Name'], df['Subrole']))
     role_dict = dict(zip(df['Player Name'], df['Role']))
+    
     prob += pulp.lpSum([fantasy_dict[p] * player_vars[p] for p in player_names]), "Total_Fantasy"
+    
     prob += pulp.lpSum([player_vars[p] for p in player_names]) == 11, "Must_Have_Exactly_11_Players"
     prob += pulp.lpSum([cost_dict[p] * player_vars[p] for p in player_names]) <= budget, "Stay_Under_Budget"
     prob += pulp.lpSum([foreign_dict[p] * player_vars[p] for p in player_names]) <= max_foreigners, "Max_4_Foreigners"
-    prob += pulp.lpSum([player_vars[p] for p in player_names if subrole_dict.get(p) == 'WK']) >= 1, "Min_1_Wicketkeeper"
-    prob += pulp.lpSum([player_vars[p] for p in player_names if role_dict[p] in ['Bowler', 'All-Rounder']]) >= 5, "Min_5_Bowling_Options"
-    prob += pulp.lpSum([player_vars[p] for p in player_names if role_dict[p] in ['Batsman', 'All-Rounder']]) >= 6, "Min_6_Batting_Options"
     
+    prob += pulp.lpSum([player_vars[p] for p in player_names if subrole_dict.get(p) == 'WK']) >= 1, "Min_1_Wicketkeeper"
+    prob += pulp.lpSum([player_vars[p] for p in player_names if role_dict.get(p) in ['Bowler', 'All-Rounder']]) >= 5, "Min_5_Bowling_Options"
+    prob += pulp.lpSum([player_vars[p] for p in player_names if role_dict.get(p) in ['Batsman', 'All-Rounder']]) >= 6, "Min_6_Batting_Options"
+
+    for player in must_include:
+        if player in player_vars:
+            constraint_name = f"Force_Include_{player.replace(' ', '_').replace('-', '_')}"
+            prob += player_vars[player] == 1, constraint_name
+            
     prob.solve()
     
     if pulp.LpStatus[prob.status] != 'Optimal':
