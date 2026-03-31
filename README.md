@@ -22,8 +22,8 @@ Our algorithm maximizes the "Total Fantasy Score" while strictly satisfying thes
 * **Budget:** Must stay under the user-defined limit (e.g., ₹50 Cr).
 * **Overseas Players:** Maximum of 4 foreign players.
 * **Wicketkeepers:** At least 1 WK.
-* **Batting Depth:** Minimum of 5 recognized batting options.
-* **Bowling Depth:** Minimum of 6 recognized bowling options.
+* **Batting Depth:** Minimum of 6 recognized batting options.
+* **Bowling Depth:** Minimum of 5 recognized bowling options.
 
 ## 📂 Repository Structure
 
@@ -42,20 +42,20 @@ Our algorithm maximizes the "Total Fantasy Score" while strictly satisfying thes
 ## 🚀 How to Run Locally
 
 1. **Clone the repo:**
-   ```bash
+   ```Bash
    git clone [https://github.com/madhavcodes25/ipl-moneyball.git](https://github.com/madhavcodes25/ipl-moneyball.git)
    cd ipl-moneyball
    ```
    
 2. **Install dependencies:**
 
-```bash
+```Bash
 pip install streamlit pandas numpy pulp plotly matplotlib
 ```
 
 3. **Launch the dashboard:**
 
-```bash
+```Bash
 streamlit run dashboard.py
 ```
 
