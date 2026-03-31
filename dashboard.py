@@ -4,7 +4,7 @@ import plotly.express as px
 from src.data_cleaning import prepare_data
 from src.optimizer import calculate_fantasy, optimize_team
 
-st.set_page_config(page_title="IPL Moneyball AI", page_icon="🏏", layout="wide")
+st.set_page_config(page_title="IPL Moneyball", page_icon="🏏", layout="wide")
 
 @st.cache_data
 def load_data():
@@ -28,13 +28,13 @@ def main():
                 "Force include up to 11 players:",
                 options=player_list,
                 max_selections=11,
-                help="The AI will build the rest of the team around these retained players."
+                help="Will build the rest of the team around these retained players."
             )
             
             st.markdown("---")
             generate_btn = st.form_submit_button("Draft Perfect Team", type="primary", use_container_width=True)
 
-    st.title("🏆 AI-Powered IPL Team Selector")
+    st.title("🏆 Data-Driven IPL Team Selector")
     st.caption(f"Building the best mathematically possible team using the '{role_focus}' strategy.")
     st.divider()
 
