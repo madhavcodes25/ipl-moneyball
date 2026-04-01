@@ -100,7 +100,34 @@ def main():
                 options=player_list,
                 help="These players will be completely ignored by the optimizer."
             )
+        st.markdown("---")
+
+        with st.expander("🛠️ Custom Expected Prices"):
+            st.caption("Adjust expected prices for players in the auction pool.")
             
+            available_for_custom_price = [
+                p for p in player_list 
+                if p not in must_include_players and p not in must_exclude_players
+            ]
+            
+            players_to_adjust = st.multiselect(
+                "Select players to adjust:",
+                options=available_for_custom_price,
+                help="Override the dataset's default price for these players."
+            )
+            
+            custom_auction_prices = {}
+            if players_to_adjust:
+                for player in players_to_adjust:
+                    default_cost = float(raw_data[raw_data['Player Name'] == player]['Cost_Cr'].iloc[0])
+                    custom_auction_prices[player] = st.number_input(
+                        f"{player} Expected Price", 
+                        min_value=0.0, 
+                        max_value=float(budget), 
+                        value=default_cost, 
+                        step=0.25,
+                        key=f"auction_price_{player}" 
+                    )  
         st.markdown("---")
         generate_btn = st.button("Draft Perfect Team", type="primary", use_container_width=True)
 
@@ -153,6 +180,7 @@ def main():
             must_include=must_include_players,
             must_exclude=must_exclude_players,
             retention_prices=retention_prices,
+            custom_auction_prices=custom_auction_prices,
             num_batters=num_batters,
             constraint_mode=constraint_mode,
             num_bowlers=num_bowlers,
@@ -165,11 +193,21 @@ def main():
 
             for player, custom_price in retention_prices.items():
                 optimal_squad.loc[optimal_squad['Player Name'] == player, 'Cost_Cr'] = custom_price
+
+            for player, custom_price in custom_auction_prices.items(): 
+                optimal_squad.loc[optimal_squad['Player Name'] == player, 'Cost_Cr'] = custom_price
+
             spent = optimal_squad['Cost_Cr'].sum()
             
+            display_squad = optimal_squad.rename(columns={
+                'Cost_Cr': 'Auction Price (Cr)',
+                'Fantasy_Score': 'Fantasy Points',
+                'Is_Foreign': 'Overseas Player'
+            })
+
             st.subheader("📊 Team Analytics")
             m1, m2, m3, m4 = st.columns(4)
-            m1.metric(label="Total Fantasy Score", value=f"{total_score:.2f}")
+            m1.metric(label="Total Fantasy Points", value=f"{total_score:.2f}") 
             m2.metric(label="Funds Spent", value=f"₹{spent:.2f} Cr")
             m3.metric(label="Funds Remaining", value=f"₹{budget - spent:.2f} Cr")
             m4.metric(label="Foreign Players", value=f"{int(optimal_squad['Is_Foreign'].sum())}/4")
@@ -179,10 +217,10 @@ def main():
             col_chart1, col_chart2 = st.columns(2)
             
             with col_chart1:
-                role_budget = optimal_squad.groupby('Role')['Cost_Cr'].sum().reset_index()
+                role_budget = display_squad.groupby('Role')['Auction Price (Cr)'].sum().reset_index()
                 fig_pie = px.pie(
                     role_budget, 
-                    values='Cost_Cr', 
+                    values='Auction Price (Cr)', 
                     names='Role', 
                     title="Budget Allocation by Role", 
                     hole=0.4,
@@ -193,9 +231,9 @@ def main():
 
             with col_chart2:
                 fig_bar = px.bar(
-                    optimal_squad, 
+                    display_squad, 
                     x='Player Name', 
-                    y='Fitness_Score' if 'Fitness_Score' in optimal_squad.columns else 'Fantasy_Score', 
+                    y='Fitness_Score' if 'Fitness_Score' in display_squad.columns else 'Fantasy Points', 
                     color='Role',
                     title="Player Fantasy Contributions",
                     text_auto='.2f',
@@ -207,13 +245,13 @@ def main():
             st.subheader("📋 Your Optimal Squad")
             
             st.dataframe(
-               optimal_squad, 
+               display_squad, 
                use_container_width=True, 
                hide_index=True,
                height=450
             )
 
-            csv = optimal_squad.to_csv(index=False).encode('utf-8')
+            csv = display_squad.to_csv(index=False).encode('utf-8')
             st.download_button(
                 label="📥 Download Squad as CSV",
                 data=csv,
