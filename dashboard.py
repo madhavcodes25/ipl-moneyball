@@ -19,7 +19,7 @@ def main():
         st.markdown("Fine-tune your auction constraints.")
         
         with st.form("strategy_form"):
-            budget = st.slider("Total Budget (Crores)", 20, 100, 50)
+            budget = st.slider("Total Budget (Crores)", 20, 125, 100)
             role_focus = st.selectbox("Team Strategy", ["Balanced", "Batting Heavy", "Bowling Heavy"])
             
             st.markdown("---")
