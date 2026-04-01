@@ -19,7 +19,7 @@ Taking inspiration from *Moneyball*, this tool removes human bias from the aucti
 ## 🧠 Optimization Constraints
 Our algorithm maximizes the "Total Fantasy Score" while strictly satisfying these real-world IPL rules:
 * **Squad Size:** Exactly 11 players.
-* **Budget:** Must stay under the user-defined limit (e.g., ₹50 Cr).
+* **Budget:** Must stay under the user-defined limit (e.g., ₹100 Cr).
 * **Overseas Players:** Maximum of 4 foreign players.
 * **Wicketkeepers:** At least 1 WK.
 * **Batting Depth:** Minimum of 6 recognized batting options.
