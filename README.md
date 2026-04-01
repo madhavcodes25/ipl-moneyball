@@ -17,7 +17,8 @@ Taking inspiration from *Moneyball*, this tool removes human bias from the aucti
 * **Data Visualization:** Plotly Express
 
 ## ✨ Advanced Features
-* **Intelligent Retention System**: Force-include specific marquee players (e.g., Kohli, Bumrah) into your squad. The optimizer automatically adjusts the remaining budget and roster slots around your core picks.
+* **Intelligent Retention System**: Force include specific marquee players (e.g., Kohli, Bumrah) into your squad. The optimizer automatically adjusts the remaining budget and roster slots around your core picks.
+* **Ignore Player System:**: Force exclude specific players into your squad.
 * **Dynamic Role Configuration:** Unlike standard selectors, you can define your own team balance.
 * **Strategy Weighting:** Toggle between "Batting Heavy," "Bowling Heavy," or "Balanced" optimization modes to align with specific ground conditions (e.g., Chinnaswamy vs. Chepauk).
 
