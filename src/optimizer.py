@@ -65,7 +65,7 @@ def is_spinner(subrole_str):
     s = str(subrole_str).lower()
     return any(keyword in s for keyword in ['spin', 'orthodox', 'leg', 'googly', 'carrom'])
 
-def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,must_exclude=None,
+def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,must_exclude=None,retention_prices=None,
                   constraint_mode="Flexible (Auto-balance)", 
                   num_batters=4, num_bowlers=4, num_all_rounders=2, 
                   num_pacers=3, num_spinners=2):
@@ -75,6 +75,8 @@ def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,must_exc
         must_include = []
     if must_exclude is None: 
         must_exclude = []    
+    if retention_prices is None: 
+        retention_prices = {}    
 
 
     prob = pulp.LpProblem("IPL_Moneyball", pulp.LpMaximize)
@@ -83,6 +85,10 @@ def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,must_exc
     
     fantasy_dict = dict(zip(df['Player Name'], df['Fantasy_Score']))
     cost_dict = dict(zip(df['Player Name'], df['Cost_Cr']))
+    for player, custom_price in retention_prices.items():
+        if player in cost_dict:
+            cost_dict[player] = custom_price
+
     foreign_dict = dict(zip(df['Player Name'], df['Is_Foreign']))
     subrole_dict = dict(zip(df['Player Name'], df['Subrole']))
     role_dict = dict(zip(df['Player Name'], df['Role']))
