@@ -76,6 +76,14 @@ def main():
                 max_selections=11,
                 help="Will build the rest of the team around these retained players."
             )
+
+            st.markdown("---")
+            st.subheader("Exclusions")
+            must_exclude_players = st.multiselect(
+                "Ignore these players:",
+                options=player_list,
+                help="These players will be completely ignored by the optimizer."
+            )
             
             st.markdown("---")
             generate_btn = st.form_submit_button("Draft Perfect Team", type="primary", use_container_width=True)
@@ -87,7 +95,11 @@ def main():
     if not generate_btn:
         st.info("👈 Adjust your parameters in the Strategy Room and click 'Draft Perfect Team' to begin.")
         return
-
+    
+    conflict_players = set(must_include_players).intersection(set(must_exclude_players))
+    if conflict_players:
+        st.error(f"🚨 Logic Error: You cannot both retain and ignore the same player(s): {', '.join(conflict_players)}")
+        return
     
     if (num_batters + num_bowlers + num_all_rounders) != 11:
         st.error("🚨 Constraint Error: The sum of Batters, Bowlers, All-Rounders, and Wicket Keepers must exactly equal 11.")
@@ -123,6 +135,7 @@ def main():
             scored_data, 
             budget=budget,
             must_include=must_include_players,
+            must_exclude=must_exclude_players,
             num_batters=num_batters,
             constraint_mode=constraint_mode,
             num_bowlers=num_bowlers,
