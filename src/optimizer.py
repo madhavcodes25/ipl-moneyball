@@ -65,7 +65,7 @@ def is_spinner(subrole_str):
     s = str(subrole_str).lower()
     return any(keyword in s for keyword in ['spin', 'orthodox', 'leg', 'googly', 'carrom'])
 
-def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,
+def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,must_exclude=None,
                   constraint_mode="Flexible (Auto-balance)", 
                   num_batters=4, num_bowlers=4, num_all_rounders=2, 
                   num_pacers=3, num_spinners=2):
@@ -73,6 +73,9 @@ def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,
     
     if must_include is None:
         must_include = []
+    if must_exclude is None: 
+        must_exclude = []    
+
 
     prob = pulp.LpProblem("IPL_Moneyball", pulp.LpMaximize)
     player_names = df['Player Name'].tolist()
@@ -111,6 +114,11 @@ def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,
         if player in player_vars:
             constraint_name = f"Force_Include_{player.replace(' ', '_').replace('-', '_')}"
             prob += player_vars[player] == 1, constraint_name
+
+    for player in must_exclude:
+        if player in player_vars:
+            constraint_name = f"Force_Exclude_{player.replace(' ', '_').replace('-', '_')}"
+            prob += player_vars[player] == 0, constraint_name        
             
     prob.solve()
     
