@@ -43,7 +43,7 @@ Our algorithm maximizes the "Total Fantasy Score" while strictly satisfying thes
 
 1. **Clone the repo:**
    ```Bash
-   git clone [https://github.com/madhavcodes25/ipl-moneyball.git](https://github.com/madhavcodes25/ipl-moneyball.git)
+   git clone https://github.com/madhavcodes25/ipl-moneyball.git
    cd ipl-moneyball
    ```
    
