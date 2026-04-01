@@ -4,7 +4,7 @@ Year,Player Name,Role,Subrole,Batting Runs,Batting Average,Batting Strike Rate,N
 2024,Abhinav Manohar,Batsman,Non-WK,9.0,4.5,56.25,0.0,8,0.0,0.0,0.0,1.0,0.0,,,,,,2.6,0
 2025,Abhinav Manohar,Batsman,Non-WK,61.0,12.2,100.0,0.0,43,0.0,0.0,4.0,2.0,0.0,,,,,,3.2,0
 2024,Abhishek Sharma,All-Rounder,Spin,484.0,32.26,204.21,1.0,75*,0.0,3.0,42.0,36.0,2.0,7.28,,21.0,2/24,0.0,6.5,0
-2025,Abhishek Sharma,All-Rounder,Spin,439.0,33.77,193.39,0.0,141,1.0,2.0,28.0,46.0,0.0,,,,,,14.0,0
+2025,Abhishek Sharma,Batsman,Non-WK,439.0,33.77,193.39,0.0,141,1.0,2.0,28.0,46.0,0.0,,,,,,14.0,0
 2024,Abishek Porel,Batsman,Non-WK,327.0,32.7,159.51,2.0,65,0.0,2.0,13.0,36.0,0.0,,,,,,0.2,0
 2025,Abishek Porel,Batsman,Non-WK,301.0,25.08,146.82,1.0,51,0.0,1.0,12.0,28.0,0.0,,,,,,4.0,0
 2025,Adam Zampa,Bowler,Spin,0.0,,,,,,,,,2.0,11.75,47.0,24.0,46/1,0.0,2.4,1
@@ -47,8 +47,6 @@ Year,Player Name,Role,Subrole,Batting Runs,Batting Average,Batting Strike Rate,N
 2024,Anukul Roy,All-Rounder,Spin,3.0,0.0,100.0,1.0,3*,0.0,0.0,0.0,0.0,0.0,,,,,,0.2,0
 2025,Anukul Roy,All-Rounder,Spin,0.0,,,,,,,,,1.0,6.75,27.0,24.0,27/1,0.0,0.4,0
 2023,Arjun Tendulkar,All-Rounder,Pace,13.0,13.0,144.44,0.0,13,0.0,0.0,1.0,0.0,3.0,9.35,,19.66,1/9,0.0,0.3,0
-2023,Arshad Khan,All-Rounder,Pace,18.0,9.0,120.0,1.0,15*,0.0,0.0,1.0,0.0,5.0,13.41,,17.0,3/39,0.0,0.2,0
-2024,Arshad Khan,All-Rounder,Pace,83.0,41.5,153.7,2.0,58*,0.0,1.0,5.0,6.0,0.0,,,,,,1.3,0
 2023,Arshdeep Singh,Bowler,Pace,0.0,,,,,,,,,17.0,9.69,,17.94,4/29,0.0,4.0,0
 2024,Arshdeep Singh,Bowler,Pace,4.0,4.0,133.33,0.0,4,0.0,0.0,0.0,1.0,19.0,10.03,,15.89,4/29,0.0,4.0,0
 2025,Arshdeep Singh,Bowler,Pace,2.0,2.0,33.33,1.0,1*,0.0,0.0,0.0,0.0,21.0,8.88,24.66,16.66,16/3,0.0,18,0
@@ -131,7 +129,7 @@ Year,Player Name,Role,Subrole,Batting Runs,Batting Average,Batting Strike Rate,N
 2025,Hardik Pandya,All-Rounder,Pace,224.0,24.89,163.5,3.0,48*,0.0,0.0,12.0,18.0,14.0,9.77,24.42,15.0,36/5,1.0,16.35,0
 2023,Harpreet Brar,All-Rounder,Spin,52.0,8.66,126.82,2.0,17*,0.0,0.0,2.0,5.0,9.0,8.02,,18.11,4/30,0.0,3.8,0
 2024,Harpreet Brar,All-Rounder,Spin,75.0,37.5,138.88,5.0,29,0.0,0.0,2.0,8.0,7.0,7.97,,32.57,2/13,0.0,3.8,0
-2025,Harpreet Brar,All-Rounder,Spin,11.0,11.0,84.61,1.0,7*,0.0,0.0,1.0,0.0,10.0,8.63,19.0,13.2,22/3,0.0,3.8,0
+2025,Harpreet Brar,Bowler,Spin,11.0,11.0,84.61,1.0,7*,0.0,0.0,1.0,0.0,10.0,8.63,19.0,13.2,22/3,0.0,3.8,0
 2023,Harpreet Singh,Batsman,Non-WK,76.0,25.33,128.81,0.0,41,0.0,0.0,3.0,8.0,0.0,,,,,,0.4,0
 2024,Harpreet Singh,Batsman,Non-WK,27.0,13.5,79.41,0.0,14,0.0,0.0,0.0,2.0,0.0,,,,,,0.4,0
 2023,Harry Brook,Batsman,Non-WK,190.0,21.11,123.37,2.0,100*,1.0,0.0,4.0,23.0,0.0,,,,,,13.25,1
@@ -141,7 +139,7 @@ Year,Player Name,Role,Subrole,Batting Runs,Batting Average,Batting Strike Rate,N
 2025,Harshal Patel,Bowler,Pace,21.0,10.5,80.76,2.0,12*,0.0,0.0,0.0,0.0,16.0,9.8,26.87,16.43,28/4,0.0,11.75,0
 2023,Harshit Rana,All-Rounder,Pace,0.0,,,,,,,,,5.0,8.64,,20.4,2/33,0.0,0.2,0
 2024,Harshit Rana,All-Rounder,Pace,0.0,,,,,,,,,19.0,9.08,,13.31,3/24,0.0,0.2,0
-2025,Harshit Rana,All-Rounder,Pace,57.0,14.25,107.54,3.0,34,0.0,0.0,3.0,5.0,15.0,10.18,29.86,17.6,25/3,0.0,4.0,0
+2025,Harshit Rana,Bowler,Pace,57.0,14.25,107.54,3.0,34,0.0,0.0,3.0,5.0,15.0,10.18,29.86,17.6,25/3,0.0,4.0,0
 2023,Heinrich Klaasen,Batsman,WK,448.0,49.77,177.07,2.0,104,1.0,2.0,25.0,32.0,0.0,,,,,,5.25,1
 2024,Heinrich Klaasen,Batsman,WK,479.0,39.91,171.07,3.0,80*,0.0,4.0,38.0,19.0,0.0,,,,,,5.25,1
 2025,Heinrich Klaasen,Batsman,WK,487.0,44.27,172.69,2.0,105*,1.0,1.0,25.0,42.0,0.0,,,,,,23.0,1
@@ -190,7 +188,7 @@ Year,Player Name,Role,Subrole,Batting Runs,Batting Average,Batting Strike Rate,N
 2023,Karan Sharma,Batsman,Non-WK,12.0,6.0,57.14,0.0,9,0.0,0.0,0.0,0.0,0.0,,,,,,0.2,0
 2023,Karn Sharma,All-Rounder,Spin,3.0,1.5,60.0,0.0,2,0.0,0.0,0.0,0.0,10.0,10.37,,12.9,2/19,0.0,0.5,0
 2024,Karn Sharma,All-Rounder,Spin,31.0,10.33,206.66,0.0,20,0.0,0.0,3.0,2.0,7.0,10.58,,20.57,2/29,0.0,0.5,0
-2025,Karn Sharma,All-Rounder,Spin,1.0,,100.0,1.0,1*,0.0,0.0,0.0,0.0,7.0,8.53,18.28,12.85,23/3,0.0,0.5,0
+2025,Karn Sharma,Bowler,Spin,1.0,,100.0,1.0,1*,0.0,0.0,0.0,0.0,7.0,8.53,18.28,12.85,23/3,0.0,0.5,0
 2025,Karun Nair,Batsman,Non-WK,198.0,24.75,172.17,0.0,89,0.0,1.0,10.0,24.0,0.0,,,,,,0.5,0
 2024,Keshav Maharaj,Bowler,Spin,0.0,,,,,,,,,2.0,6.5,,18.0,2/23,0.0,0.2,1
 2023,Khaleel Ahmed,Bowler,Pace,0.0,,,,,,,,,9.0,9.12,,22.0,2/24,0.0,5.25,0
@@ -222,7 +220,7 @@ Year,Player Name,Role,Subrole,Batting Runs,Batting Average,Batting Strike Rate,N
 2023,Litton Das,Batsman,Non-WK,4.0,4.0,100.0,0.0,4,0.0,0.0,0.0,1.0,0.0,,,,,,0.2,1
 2024,Lizaad Williams,Bowler,Pace,0.0,,,,,,,,,1.0,12.0,,36.0,1/38,0.0,0.2,1
 2025,Lockie Ferguson,Bowler,Pace,4.0,,400.0,1.0,4*,0.0,0.0,0.0,1.0,5.0,9.17,20.8,13.6,37/2,0.0,2.0,1
-2024,Luke Wood,All-Rounder,Pace,9.0,0.0,300.0,1.0,9*,0.0,0.0,1.0,0.0,1.0,15.5,,36.0,1/68,0.0,0.75,1
+2024,Luke Wood,Bowler,Pace,9.0,0.0,300.0,1.0,9*,0.0,0.0,1.0,0.0,1.0,15.5,,36.0,1/68,0.0,0.75,1
 2025,Lungisani Ngidi,Bowler,Pace,0.0,,,,,,,,,4.0,10.12,20.25,12.0,30/3,0.0,1.0,1
 2025,M Siddharth,Bowler,Pace,0.0,,,,,,,,,2.0,9.57,33.5,21.0,39/2,0.0,2.4,0
 2025,Madhav Tiwari,Batsman,Non-WK,3.0,3.0,75.0,0.0,3,0.0,0.0,0.0,0.0,0.0,,,,,,0.3,0
@@ -316,7 +314,7 @@ Year,Player Name,Role,Subrole,Batting Runs,Batting Average,Batting Strike Rate,N
 2025,Nitish Kumar Reddy,All-Rounder,Pace,182.0,22.75,118.95,3.0,32,0.0,0.0,4.0,16.0,2.0,9.4,23.5,15.0,13/1,0.0,6.0,0
 2023,Nitish Rana,All-Rounder,Spin,413.0,31.76,140.95,1.0,75,0.0,3.0,20.0,39.0,3.0,8.49,,17.66,2/17,0.0,8.0,0
 2024,Nitish Rana,All-Rounder,Spin,42.0,21.0,123.52,0.0,33,0.0,0.0,1.0,5.0,0.0,,,,,,8.0,0
-2025,Nitish Rana,All-Rounder,Spin,217.0,21.7,161.94,1.0,81,0.0,2.0,9.0,27.0,0.0,,,,,,4.20,0
+2025,Nitish Rana,Batsman,Spin,217.0,21.7,161.94,1.0,81,0.0,2.0,9.0,27.0,0.0,,,,,,4.20,0
 2023,Noor Ahmad,Bowler,Spin,8.0,4.0,88.88,1.0,7*,0.0,0.0,0.0,1.0,16.0,7.82,,17.68,3/37,0.0,0.3,1
 2024,Noor Ahmad,Bowler,Spin,5.0,2.5,55.55,2.0,4,0.0,0.0,0.0,1.0,8.0,8.32,,26.12,2/20,0.0,0.3,1
 2025,Noor Ahmad,Bowler,Spin,7.0,1.75,41.17,2.0,2*,0.0,0.0,0.0,0.0,24.0,8.16,17.0,12.5,18/4,0.0,10.0,1
@@ -374,7 +372,7 @@ Year,Player Name,Role,Subrole,Batting Runs,Batting Average,Batting Strike Rate,N
 2024,Ravindra Jadeja,All-Rounder,Spin,267.0,44.5,142.78,5.0,57*,0.0,1.0,8.0,22.0,8.0,7.85,,35.25,3/18,0.0,16.0,0
 2025,Ravindra Jadeja,All-Rounder,Spin,301.0,33.44,135.58,5.0,77*,0.0,2.0,10.0,25.0,10.0,8.56,32.4,22.7,17/2,0.0,18.0,0
 2023,Reece Topley,All-Rounder,Pace,0.0,,,,,,,,,1.0,7.0,,12.0,1/14,0.0,1.9,1
-2024,Reece Topley,All-Rounder,Pace,3.0,0.0,50.0,1.0,3*,0.0,0.0,0.0,0.0,4.0,11.2,,22.5,2/27,0.0,1.9,1
+2024,Reece Topley,Bowler,Pace,3.0,0.0,50.0,1.0,3*,0.0,0.0,0.0,0.0,4.0,11.2,,22.5,2/27,0.0,1.9,1
 2024,Richard Gleeson,Bowler,Pace,0.0,,,,,,,,,1.0,9.06,,47.0,1/30,0.0,0.2,1
 2025,Richard Gleeson,Bowler,Pace,0.0,,,,,,,,,1.0,11.14,39.0,21.0,39/1,0.0,0.3,1
 2024,Ricky Bhui,Batsman,Non-WK,3.0,1.5,33.33,0.0,3,0.0,0.0,0.0,0.0,0.0,,,,,,0.2,0
