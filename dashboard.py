@@ -18,9 +18,55 @@ def main():
         st.header("Strategy Room 🏏")
         st.markdown("Fine-tune your auction constraints.")
         
+
+        constraint_mode = st.radio(
+                "Select Constraint Mode", 
+                ["Flexible (Auto-balance)", "Strict (Custom Roles)"],
+                help="Flexible ensures min 5 bowlers and 6 batters. Strict lets you pick exact counts."
+            )
+        
         with st.form("strategy_form"):
             budget = st.slider("Total Budget (Crores)", 20, 120, 100)
             role_focus = st.selectbox("Team Strategy", ["Balanced", "Batting Heavy", "Bowling Heavy"])
+            
+            
+            st.markdown("---")
+            st.subheader("Team Composition")
+            
+            
+            num_batters, num_bowlers, num_all_rounders = 5, 4, 2
+            num_pacers, num_spinners = 3, 2
+
+            if constraint_mode == "Strict (Custom Roles)":
+                st.caption("Must exactly equal 11 players")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    num_batters = st.number_input("Batters 🏏", min_value=0, max_value=11, value=5)
+                with col2:
+                    num_bowlers = st.number_input("Bowlers 🎯", min_value=0, max_value=11, value=4)
+                
+                num_all_rounders = st.number_input("All-Rounders ⚔️", min_value=0, max_value=11, value=2)
+
+                st.subheader("Bowling Attack Setup")
+                col3, col4 = st.columns(2)
+                with col3:
+                    num_pacers = st.number_input("Min Pacers", min_value=0, max_value=11, value=3)
+                with col4:
+                    num_spinners = st.number_input("Min Spinners", min_value=0, max_value=11, value=2)
+            else:
+                st.info(
+                    "🤖 **Auto-balance Active**\n\n"
+                    "The algorithm will automatically build the most optimal squad ensuring at least:\n"
+                    "- 6 Batting options\n"
+                    "- 5 Bowling options\n"
+                    "- 1 Wicket Keeper"
+                )
+
+                if (num_batters + num_bowlers + num_all_rounders) != 11:
+                    st.error("🚨 Constraint Error: The sum of Batters, Bowlers, All-Rounders, and Wicket Keepers must exactly equal 11.")
+                    return
+            
             
             st.markdown("---")
             st.subheader("Retentions")
@@ -42,6 +88,33 @@ def main():
         st.info("👈 Adjust your parameters in the Strategy Room and click 'Draft Perfect Team' to begin.")
         return
 
+    
+    if (num_batters + num_bowlers + num_all_rounders) != 11:
+        st.error("🚨 Constraint Error: The sum of Batters, Bowlers, All-Rounders, and Wicket Keepers must exactly equal 11.")
+        return
+        
+    if (num_pacers + num_spinners) > (num_bowlers + num_all_rounders):
+        st.warning("⚠️ Logic Warning: You have requested more Pacers and Spinners than total available bowling options (Bowlers + All-Rounders). The optimizer may fail.")
+
+    if must_include_players:
+        retained_df = raw_data[raw_data['Player Name'].isin(must_include_players)]
+        
+        cost_col = 'Cost_Cr' if 'Cost_Cr' in retained_df.columns else 'Price'
+        foreign_col = 'Is_Foreign' if 'Is_Foreign' in retained_df.columns else 'Overseas'
+        
+        budget_spent_retained = retained_df[cost_col].sum() if cost_col in retained_df.columns else 0
+        overseas_count_retained = retained_df[foreign_col].sum() if foreign_col in retained_df.columns else 0
+        
+        if overseas_count_retained > 4:
+            st.error(f"🚨 Rule Violation: You have retained {int(overseas_count_retained)} overseas players. The maximum allowed is 4.")
+            return 
+            
+        if budget_spent_retained > budget:
+            st.error(f"🚨 Budget Exceeded: Your retained players cost ₹{budget_spent_retained:.2f} Cr, which is over your ₹{budget} Cr limit.")
+            return 
+            
+
+
     with st.spinner("Crunching the numbers and simulating auction bids..."):
         
         scored_data = calculate_fantasy(raw_data, strategy=role_focus)
@@ -49,7 +122,13 @@ def main():
         optimal_squad, total_score = optimize_team(
             scored_data, 
             budget=budget,
-            must_include=must_include_players
+            must_include=must_include_players,
+            num_batters=num_batters,
+            constraint_mode=constraint_mode,
+            num_bowlers=num_bowlers,
+            num_all_rounders=num_all_rounders,
+            num_pacers=num_pacers,
+            num_spinners=num_spinners
         )
         
         if optimal_squad is not None and not optimal_squad.empty:
@@ -110,7 +189,7 @@ def main():
             )
             
         else:
-            st.error("⚠️ Could not find a valid team! This usually happens if your budget is too low for the players you forced into the squad. Try increasing your budget.")
+            st.error("⚠️ Could not find a valid team! This usually happens if your budget is too low for the constraints you set, or if you forced players into the squad that break the team structure. Try adjusting your constraints.")
 
 if __name__ == "__main__":
     main()
