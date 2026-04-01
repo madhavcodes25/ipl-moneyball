@@ -25,19 +25,19 @@ def main():
                 help="Flexible ensures min 5 bowlers and 6 batters. Strict lets you pick exact counts."
             )
         
-        with st.form("strategy_form"):
-            budget = st.slider("Total Budget (Crores)", 20, 120, 100)
-            role_focus = st.selectbox("Team Strategy", ["Balanced", "Batting Heavy", "Bowling Heavy"])
-            
-            
-            st.markdown("---")
-            st.subheader("Team Composition")
-            
-            
-            num_batters, num_bowlers, num_all_rounders = 5, 4, 2
-            num_pacers, num_spinners = 3, 2
 
-            if constraint_mode == "Strict (Custom Roles)":
+        budget = st.slider("Total Budget (Crores)", 20, 120, 100)
+        role_focus = st.selectbox("Team Strategy", ["Balanced", "Batting Heavy", "Bowling Heavy"])
+            
+            
+        st.markdown("---")
+        st.subheader("Team Composition")
+            
+            
+        num_batters, num_bowlers, num_all_rounders = 5, 4, 2
+        num_pacers, num_spinners = 3, 2
+
+        if constraint_mode == "Strict (Custom Roles)":
                 st.caption("Must exactly equal 11 players")
                 
                 col1, col2 = st.columns(2)
@@ -54,7 +54,7 @@ def main():
                     num_pacers = st.number_input("Min Pacers", min_value=0, max_value=11, value=3)
                 with col4:
                     num_spinners = st.number_input("Min Spinners", min_value=0, max_value=11, value=2)
-            else:
+        else:
                 st.info(
                     "🤖 **Auto-balance Active**\n\n"
                     "The algorithm will automatically build the most optimal squad ensuring at least:\n"
@@ -63,30 +63,46 @@ def main():
                     "- 1 Wicket Keeper"
                 )
 
-                if (num_batters + num_bowlers + num_all_rounders) != 11:
+        if (num_batters + num_bowlers + num_all_rounders) != 11:
                     st.error("🚨 Constraint Error: The sum of Batters, Bowlers, All-Rounders, and Wicket Keepers must exactly equal 11.")
                     return
             
             
-            st.markdown("---")
-            st.subheader("Retentions")
-            must_include_players = st.multiselect(
+        st.markdown("---")
+        st.subheader("Retentions")
+        must_include_players = st.multiselect(
                 "Force include up to 11 players:",
                 options=player_list,
                 max_selections=11,
                 help="Will build the rest of the team around these retained players."
             )
 
-            st.markdown("---")
-            st.subheader("Exclusions")
-            must_exclude_players = st.multiselect(
+        retention_prices = {}
+        if must_include_players:
+                st.caption("Set custom retention prices (₹ Cr)")
+                for player in must_include_players:
+                    # Fetch the player's default cost from the dataset to use as a starting value
+                    default_cost = float(raw_data[raw_data['Player Name'] == player]['Cost_Cr'].iloc[0])
+                    
+                    # Create a number input for each retained player
+                    retention_prices[player] = st.number_input(
+                        f"{player} Price", 
+                        min_value=0.0, 
+                        max_value=float(budget), 
+                        value=default_cost, 
+                        step=0.25
+                    )
+
+        st.markdown("---")
+        st.subheader("Exclusions")
+        must_exclude_players = st.multiselect(
                 "Ignore these players:",
                 options=player_list,
                 help="These players will be completely ignored by the optimizer."
             )
             
-            st.markdown("---")
-            generate_btn = st.form_submit_button("Draft Perfect Team", type="primary", use_container_width=True)
+        st.markdown("---")
+        generate_btn = st.button("Draft Perfect Team", type="primary", use_container_width=True)
 
     st.title("🏆 Data-Driven IPL Team Selector")
     st.caption(f"Building the best mathematically possible team using the '{role_focus}' strategy.")
@@ -114,7 +130,7 @@ def main():
         cost_col = 'Cost_Cr' if 'Cost_Cr' in retained_df.columns else 'Price'
         foreign_col = 'Is_Foreign' if 'Is_Foreign' in retained_df.columns else 'Overseas'
         
-        budget_spent_retained = retained_df[cost_col].sum() if cost_col in retained_df.columns else 0
+        budget_spent_retained = sum(retention_prices.values())
         overseas_count_retained = retained_df[foreign_col].sum() if foreign_col in retained_df.columns else 0
         
         if overseas_count_retained > 4:
@@ -136,6 +152,7 @@ def main():
             budget=budget,
             must_include=must_include_players,
             must_exclude=must_exclude_players,
+            retention_prices=retention_prices,
             num_batters=num_batters,
             constraint_mode=constraint_mode,
             num_bowlers=num_bowlers,
@@ -145,6 +162,9 @@ def main():
         )
         
         if optimal_squad is not None and not optimal_squad.empty:
+
+            for player, custom_price in retention_prices.items():
+                optimal_squad.loc[optimal_squad['Player Name'] == player, 'Cost_Cr'] = custom_price
             spent = optimal_squad['Cost_Cr'].sum()
             
             st.subheader("📊 Team Analytics")
