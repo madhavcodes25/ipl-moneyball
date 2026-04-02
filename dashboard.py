@@ -42,7 +42,7 @@ def main():
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    num_batters = st.number_input("Batters 🏏", min_value=0, max_value=11, value=5)
+                    num_batters = st.number_input("Batters 🏏", min_value=1, max_value=11, value=5)
                 with col2:
                     num_bowlers = st.number_input("Bowlers 🎯", min_value=0, max_value=11, value=4)
                 
