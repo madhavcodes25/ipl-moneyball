@@ -2,55 +2,51 @@ import pandas as pd
 import numpy as np
 import pulp
 
-def calculate_fantasy(df, strategy="Balanced", runs=100, wickets=5):
-    print("Calculating Fantasy Scores...")
-    bat_weight = 1.0
-    bowl_weight = 1.0
-    lower_is_better = ['Economy Rate', 'Bowling Average']
-    higher_is_better = ['Batting Strike Rate', 'Batting Runs', 'Batting Average', 'Wickets']
-    if strategy == "Batting Heavy":
-        bat_weight = 1.2
-        bowl_weight = 0.8
-    elif strategy == "Bowling Heavy":
-        bat_weight = 0.8
-        bowl_weight = 1.2
+def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
+    print("Calculating Fantasy Ratings...")
+    
 
-    qualified_batsmen = df[df['Batting Runs'] >= runs]
-    qualified_bowlers = df[df['Wickets'] >= wickets]
+    bat_weight = 1.2 if strategy == "Batting Heavy" else (0.8 if strategy == "Bowling Heavy" else 1.0)
+    bowl_weight = 1.2 if strategy == "Bowling Heavy" else (0.8 if strategy == "Batting Heavy" else 1.0)
 
-    for col in higher_is_better:
-        subset = qualified_batsmen if 'Batting' in col else qualified_bowlers
-        if not subset.empty:
-            max_val = subset[col].max()
-            min_val = subset[col].min()
-            threshold_met = (df['Batting Runs'] >= runs) if 'Batting' in col else (df['Wickets'] >= wickets)
-            df[f'norm_{col}'] = np.where(
-                threshold_met,
-                ((df[col] - min_val) / (max_val - min_val + 1e-6)).clip(0, 1),
-                0 
-            )
+    batting_metrics = ['Batting Runs', 'Batting Strike Rate', 'Batting Average']
+    bowling_metrics = ['Wickets', 'Economy Rate', 'Bowling Average']
+
+    qualified_bat = df[df['Batting Runs'] >= min_runs]
+    qualified_bowl = df[df['Wickets'] >= min_wickets]
+
+    for col in batting_metrics:
+        if not qualified_bat.empty:
+            max_val = qualified_bat[col].max()
+            min_val = qualified_bat[col].min()
+            
+            df[f'norm_{col}'] = ((df[col] - min_val) / (max_val - min_val + 1e-6)).clip(0, 1)
+            
+            if col in ['Batting Strike Rate', 'Batting Average']:
+                df[f'norm_{col}'] = np.where(df['Batting Runs'] < 30, df[f'norm_{col}'] * 0.2, df[f'norm_{col}'])
         else:
             df[f'norm_{col}'] = 0
 
-    for col in lower_is_better:
-        if not qualified_bowlers.empty:
-            max_val = qualified_bowlers[col].max()
-            min_val = qualified_bowlers[col].min()
+    if not qualified_bowl.empty:
+        w_max, w_min = qualified_bowl['Wickets'].max(), qualified_bowl['Wickets'].min()
+        df['norm_Wickets'] = ((df['Wickets'] - w_min) / (w_max - w_min + 1e-6)).clip(0, 1)
+    else:
+        df['norm_Wickets'] = 0
+
+    for col in ['Economy Rate', 'Bowling Average']:
+        if not qualified_bowl.empty:
+            max_val = qualified_bowl[col].max()
+            min_val = qualified_bowl[col].min()
             
-            df[f'norm_{col}'] = np.where(
-                (df['Wickets'] >= wickets) & (df[col] > 0),
-                (max_val - df[col]) / (max_val - min_val + 1e-6),
-                0
-            )
-            df[f'norm_{col}'] = df[f'norm_{col}'].clip(0, 1)
+            df[f'norm_{col}'] = ((max_val - df[col]) / (max_val - min_val + 1e-6)).clip(0, 1)
+            
+            df[f'norm_{col}'] = np.where(df['Wickets'] < 2, df[f'norm_{col}'] * 0.2, df[f'norm_{col}'])
         else:
             df[f'norm_{col}'] = 0
 
     df['Fantasy_Score'] = (
-        df['norm_Batting Strike Rate'] * bat_weight + 
-        df['norm_Batting Runs'] * bat_weight + 
-        df['norm_Wickets'] * bowl_weight +
-        df['norm_Economy Rate'] * bowl_weight
+        (df['norm_Batting Runs'] * 1.5 + df['norm_Batting Strike Rate'] * 0.75 + df['norm_Batting Average'] * 0.75) * bat_weight + 
+        (df['norm_Wickets'] * 1.5 + df['norm_Economy Rate'] * 0.75 + df['norm_Bowling Average'] * 0.75) * bowl_weight
     ).fillna(0)
     
     return df
