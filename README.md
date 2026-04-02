@@ -24,7 +24,7 @@ Taking inspiration from *Moneyball*, this tool removes human bias from the aucti
 * **Dynamic Role Configuration:** Unlike standard selectors, you can define your own team balance.
 * **Strategy Weighting:** Toggle between "Batting Heavy," "Bowling Heavy," or "Balanced" optimization modes to align with specific ground conditions (e.g., Chinnaswamy vs. Chepauk).
 
-### 🧠 Optimization Logic (The Math)
+## 🧠 Optimization Logic (The Math)
 
 The core engine of this project treats IPL squad selection as a **Constrained Knapsack Problem**. We use Linear Programming to find the global optimum rather than relying on a simple greedy search.
 
