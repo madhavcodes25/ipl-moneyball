@@ -3,33 +3,36 @@ import pandas as pd
 import plotly.express as px
 from src.data_cleaning import prepare_data
 from src.optimizer import calculate_fantasy, optimize_team
-
+# Configure the main Streamlit page layout and metadata
 st.set_page_config(page_title="IPL Moneyball", page_icon="🏏", layout="wide")
 
 @st.cache_data
 def load_data():
+    """Caches and loads the cleaned IPL data to prevent redundant processing on app re-runs."""
     return prepare_data()
 
 def main():
+    # Load data and generate an alphabetically sorted list of unique player names
     raw_data = load_data()
     player_list = sorted(raw_data['Player Name'].dropna().unique().tolist())
-
+    # Set up the interactive sidebar menu for user inputs
     with st.sidebar:
         st.header("Strategy Room 🏏")
         st.markdown("Fine-tune your auction constraints.")
         
-
+        # Allow user to choose between flexible or strict team composition rules
         constraint_mode = st.radio(
                 "Select Constraint Mode", 
                 ["Flexible (Auto-balance)", "Strict (Custom Roles)"],
                 help="Flexible ensures min 5 bowlers and 6 batters. Strict lets you pick exact counts."
             )
         
-
+        # Slider to define the maximum auction budget
         budget = st.slider("Total Budget (Crores)", 20, 120, 100)
+        # Dropdown to select the overarching team fantasy scoring strategy
         role_focus = st.selectbox("Team Strategy", ["Balanced", "Batting Heavy", "Bowling Heavy"])
             
-            
+        # Visual divider before the next section    
         st.markdown("---")
         st.subheader("Team Composition")
             
