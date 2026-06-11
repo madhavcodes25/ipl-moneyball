@@ -73,7 +73,7 @@ The solver must satisfy the following linear inequalities:
 2. **Install dependencies:**
 
 ```Bash
-pip install streamlit pandas numpy pulp plotly matplotlib
+pip install streamlit pandas numpy pulp plotly
 ```
 
 3. **Launch the dashboard:**
