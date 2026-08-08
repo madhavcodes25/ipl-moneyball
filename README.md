@@ -83,3 +83,8 @@ streamlit run dashboard.py
 ```
 
 Feel free to fork this project, submit pull requests, or open issues if you find any bugs or have feature suggestions!
+
+## 🤝 Contributors
+* [Madhav Daluka](https://github.com/madhavcodes25/)
+* [Sankalp Singh Chauhan](https://github.com/sankalpchauhan362-wq)
+* [Harshraj Singh Panwar](https://github.com/HPisNotOP)
