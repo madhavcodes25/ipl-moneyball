@@ -29,33 +29,41 @@ Traditional IPL auction strategy is driven by reputation, hype, and gut feel. Th
 
 Each player's performance across batting and bowling is condensed into a single `Fantasy_Score` using **Min-Max normalization**:
 
-$$\text{Fantasy Score} = \left(\text{norm\_Runs} \times 1.5 + \text{norm\_SR} \times 0.75 + \text{norm\_Avg} \times 0.75\right) \times w_{\text{bat}} + \left(\text{norm\_Wkts} \times 1.5 + \text{norm\_Econ} \times 0.75 + \text{norm\_BowlAvg} \times 0.75\right) \times w_{\text{bowl}}$$
+```math
+Fantasy_Score =
+  (norm_Runs × 1.5 + norm_SR × 0.75 + norm_Avg × 0.75) × w_bat
++ (norm_Wkts × 1.5 + norm_Econ × 0.75 + norm_BowlAvg × 0.75) × w_bowl
+```
 
-- Normalization is bounded by *qualified* players (≥100 runs or ≥5 wickets) to prevent tail-enders with inflated small-sample stats from gaming the metric.
-- Players with < 30 runs or < 2 wickets have their secondary metrics penalized by 80% to further guard against sample noise.
+- All metrics are min-max scaled to `[0, 1]` using only **qualified** players (≥100 runs or ≥5 wickets) as boundaries — preventing tail-enders with inflated small-sample stats from gaming the score.
+- Players with fewer than 30 runs or 2 wickets have their secondary metrics penalized by 80% to further guard against sample noise.
+- Strategy weights: `w_bat = w_bowl = 1.0` (Balanced), `1.2 / 0.8` (Batting Heavy), `0.8 / 1.2` (Bowling Heavy).
 
 ### Step 2: Value Score (The Moneyball Metric)
 
-$$\text{Value Score} = \frac{\text{Fantasy Score}}{\text{Auction Price (Cr)}}$$
+```math
+Value_Score = Fantasy_Score / Auction_Price_Cr
+```
 
-This single number answers *"how much output do you get per crore spent?"* — the exact question Moneyball asks about baseball players. Players with high Value Score but low absolute cost are the auction targets.
+This single number answers *"how much output do you get per crore spent?"* — the exact question Moneyball asks about baseball players. Players with a high Value Score but low absolute cost are the auction targets.
 
 ### Step 3: Efficient Frontier
 
-For each player, we check if any other player exists with **both higher Fantasy Score and lower cost**. If so, the player is *dominated* — they offer worse value. The remaining players form the **Pareto-optimal efficient frontier**: the rational picks at each price point.
+For each player, we check whether any other player exists with **both a higher Fantasy Score and a lower cost**. If so, the player is *dominated* — they offer worse value on both dimensions. The remaining players form the **Pareto-optimal efficient frontier**: the rational picks at each price point.
 
 ### Step 4: Integer Linear Programming
 
-Team selection is formulated as a **Binary ILP** with PuLP:
+Team selection is formulated as a **Binary ILP** solved by PuLP + CBC:
 
-- **Objective:** Maximize $\sum_{i} x_i \cdot \text{Fantasy\_Score}_i$
-- **Decision variables:** $x_i \in \{0, 1\}$ (1 = selected, 0 = not selected)
-- **Constraints:**
-  - $\sum x_i = 11$ (squad size)
-  - $\sum x_i \cdot \text{Cost}_i \leq \text{Budget}$ (budget cap)
-  - $\sum x_i \cdot \mathbb{1}[\text{foreign}] \leq 4$ (overseas limit)
-  - At least 1 WK, ≥5 bowling options, ≥6 batting options (IPL composition rules)
-  - Optional: forced inclusions, exclusions, exact role counts
+| Element | Definition |
+|---|---|
+| Decision variable | `x_i ∈ {0, 1}` — 1 if player i is selected |
+| Objective | Maximise `Σ x_i × Fantasy_Score_i` |
+| Squad size | `Σ x_i = 11` |
+| Budget cap | `Σ x_i × Cost_i ≤ Budget` |
+| Overseas limit | `Σ x_i × is_foreign_i ≤ 4` |
+| Composition | At least 1 WK, ≥ 5 bowling options, ≥ 6 batting options |
+| Optional | Forced inclusions / exclusions, exact role counts (Strict mode) |
 
 ---
 
@@ -65,10 +73,10 @@ Team selection is formulated as a **Binary ILP** with PuLP:
 |---|---|
 | Core Language | Python 3.9+ |
 | Data Manipulation | Pandas, NumPy |
-| Optimization Engine | PuLP (CBC/GLPK solver) |
+| Optimization Engine | PuLP (CBC / GLPK solver) |
 | Web Dashboard | Streamlit |
 | Visualizations | Plotly Express, Plotly Graph Objects |
-| Testing | pytest (23 unit tests) |
+| Testing | pytest — 23 unit tests |
 
 ---
 
@@ -94,12 +102,14 @@ IPL-Moneyball/
 ## 🚀 How to Run Locally
 
 ### 1. Clone the repo
+
 ```bash
 git clone https://github.com/madhavcodes25/ipl-moneyball.git
 cd ipl-moneyball
 ```
 
 ### 2. Set up environment
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -113,11 +123,13 @@ pip install -r requirements.txt
 > The app auto-detects and prefers the system CBC binary.
 
 ### 3. Launch the dashboard
+
 ```bash
 streamlit run dashboard.py
 ```
 
 ### 4. Run the test suite
+
 ```bash
 pytest tests/ -v
 ```
@@ -127,12 +139,12 @@ pytest tests/ -v
 ## 📊 Dashboard Tabs
 
 ### ⚙️ Team Optimizer
-Configure budget, strategy, role counts, and player inclusions/exclusions. Click **Draft Perfect Team** to run the LP solver and get the mathematically optimal squad with analytics, value efficiency charts, and CSV export.
+Configure budget, strategy, role counts, and player inclusions/exclusions. Click **Draft Perfect Team** to run the LP solver and get the mathematically optimal squad with analytics, a value efficiency chart, and CSV export.
 
 ### 📈 Market Analysis
-The Moneyball view. An interactive scatter plot of every player's price vs. fantasy performance, overlaid with the **efficient frontier**. Includes:
-- **Hidden Gems table** — top 10 highest Value Score players above the median fantasy score
-- **Overpaid Players table** — the 10 worst value players at high prices
+The Moneyball view — an interactive scatter plot of every player's price vs. fantasy performance, overlaid with the **efficient frontier**. Includes:
+- **Hidden Gems** — top 10 highest Value Score players above median fantasy output
+- **Overpaid Players** — the 10 worst value players at high prices
 - **Role-level value distribution** — box plot showing which positions have the most market inefficiency
 
 ### 🔍 Player Scout
@@ -143,20 +155,26 @@ Full searchable, filterable player database sorted by Value Score. Filter by rol
 ## 🧪 Test Coverage
 
 ```
-tests/test_optimizer.py — 23 tests
+tests/test_optimizer.py  —  23 tests
 
-TestCalculateFantasy    (10 tests)  — score columns exist, non-negative, strategy weights, normalization bounds
-TestOptimizeTeam        (8 tests)   — 11 players selected, budget respected, inclusions/exclusions, infeasible case
-TestGetEfficientFrontier (5 tests)  — non-empty, subset of pool, sorted by cost, no dominated pairs
+TestCalculateFantasy      (10)  score columns exist, non-negative, strategy weights, normalisation bounds
+TestOptimizeTeam           (8)  11 players selected, budget respected, inclusions/exclusions, infeasible case
+TestGetEfficientFrontier   (5)  non-empty, subset of pool, sorted by cost, no dominated pairs
 ```
 
 ---
 
-## 🤝 Contributing
+## 🔮 Potential Extensions
 
-Fork the repo, submit pull requests, or open issues for bugs and feature suggestions. See the test suite for expected behavior of all core functions.
+- **Multi-year weighted average** instead of single-season data (regression to the mean)
+- **Monte Carlo simulation** of fantasy point variance for risk-adjusted Value Scores
+- **Live auction mode** — re-run the optimizer in real-time as players get knocked out
+- **ML-based price prediction** to flag when a player's market price diverges from their statistical value
+
+---
 
 ## 🤝 Contributors
-* [Madhav Daluka](https://github.com/madhavcodes25/)
-* [Sankalp Singh Chauhan](https://github.com/sankalpchauhan362-wq)
-* [Harshraj Singh Panwar](https://github.com/HPisNotOP)
+
+- [Madhav Daluka](https://github.com/madhavcodes25/)
+- [Sankalp Singh Chauhan](https://github.com/sankalpchauhan362-wq)
+- [Harshraj Singh Panwar](https://github.com/HPisNotOP)
