@@ -1,7 +1,8 @@
+from pathlib import Path
 import pandas as pd
 import numpy as np
 
-def prepare_data(file1="data/raw/IPL_Stats.csv"):
+def prepare_data(file1=None):
     """
     Loads and preprocesses IPL player statistics from a CSV file.
     
@@ -11,11 +12,16 @@ def prepare_data(file1="data/raw/IPL_Stats.csv"):
     numeric data types for all relevant statistical and metadata columns.
     
     Args:
-        file1 (str): Filepath to the raw IPL statistics CSV. Defaults to "data/raw/IPL_Stats.csv".
+        file1 (str or Path, optional): Filepath to the raw IPL statistics CSV.
+                                      Defaults to data/raw/IPL_Stats.csv.
         
     Returns:
         pd.DataFrame: A cleaned and deduplicated DataFrame ready for analysis.
     """
+    if file1 is None:
+        default_path = Path(__file__).resolve().parent.parent / "data" / "raw" / "IPL_Stats.csv"
+        file1 = default_path if default_path.exists() else "data/raw/IPL_Stats.csv"
+
     print("Loading data...")
     # Load the dataset into a pandas DataFrame
     df = pd.read_csv(file1)

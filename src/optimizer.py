@@ -137,7 +137,7 @@ def _get_solver():
     )
 
 
-
+def is_pacer(subrole_str):
     """Safely checks if a player is a fast/medium bowler based on their subrole text."""
     s = str(subrole_str).lower()
     return any(keyword in s for keyword in ['pace', 'fast', 'medium', 'seam'])
@@ -271,9 +271,9 @@ def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,must_exc
     selected = [p for p in player_names if player_vars[p].varValue == 1]
 
     # Create a clean DataFrame containing only the selected players and key columns, sorted by Fantasy Score
-    final_team_df = df[df['Player Name'].isin(selected)][\
+    final_team_df = df[df['Player Name'].isin(selected)][
         ['Player Name', 'Role', 'Subrole', 'Cost_Cr', 'Is_Foreign', 'Fantasy_Score', 'Value_Score']
-    ].sort_values(by='Fantasy_Score', ascending=False)
+    ].sort_values(by='Fantasy_Score', ascending=False).copy()
     
     # Return the selected team DataFrame and the final total Fantasy Score
     return final_team_df, prob.objective.value()

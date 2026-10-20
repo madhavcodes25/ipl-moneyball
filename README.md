@@ -3,7 +3,7 @@
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
 ![PuLP](https://img.shields.io/badge/Linear%20Programming-PuLP-orange)
-![Tests](https://img.shields.io/badge/Tests-23%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-24%20passing-brightgreen)
 
 > *"It's about getting things down to one number. Using the stats the way we read them, we'll find value in players that nobody else can see."* — Moneyball (2011)
 
@@ -155,21 +155,12 @@ Full searchable, filterable player database sorted by Value Score. Filter by rol
 ## 🧪 Test Coverage
 
 ```
-tests/test_optimizer.py  —  23 tests
+tests/test_optimizer.py  —  24 tests
 
 TestCalculateFantasy      (10)  score columns exist, non-negative, strategy weights, normalisation bounds
-TestOptimizeTeam           (8)  11 players selected, budget respected, inclusions/exclusions, infeasible case
+TestOptimizeTeam           (9)  11 players selected, budget respected, strict/flexible modes, inclusions/exclusions
 TestGetEfficientFrontier   (5)  non-empty, subset of pool, sorted by cost, no dominated pairs
 ```
-
----
-
-## 🔮 Potential Extensions
-
-- **Multi-year weighted average** instead of single-season data (regression to the mean)
-- **Monte Carlo simulation** of fantasy point variance for risk-adjusted Value Scores
-- **Live auction mode** — re-run the optimizer in real-time as players get knocked out
-- **ML-based price prediction** to flag when a player's market price diverges from their statistical value
 
 ---
 

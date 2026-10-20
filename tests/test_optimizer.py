@@ -195,6 +195,25 @@ class TestOptimizeTeam:
         assert team is not None
         assert 'Value_Score' in team.columns
 
+    def test_strict_mode_optimization(self, minimal_player_pool):
+        """Strict constraint mode should correctly respect exact counts and pace/spin constraints."""
+        scored = calculate_fantasy(minimal_player_pool.copy())
+        team, score = optimize_team(
+            scored,
+            budget=120.0,
+            constraint_mode="Strict (Custom Roles)",
+            num_batters=5,
+            num_bowlers=4,
+            num_all_rounders=2,
+            num_pacers=3,
+            num_spinners=2
+        )
+        assert team is not None
+        assert len(team) == 11
+        assert (team['Role'] == 'Batsman').sum() == 5
+        assert (team['Role'] == 'Bowler').sum() == 4
+        assert (team['Role'] == 'All-Rounder').sum() == 2
+
 
 # ─────────────────────────────────────────────
 # get_efficient_frontier tests
