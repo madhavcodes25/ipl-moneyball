@@ -191,8 +191,13 @@ def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,must_exc
     prob = pulp.LpProblem("IPL_Moneyball", pulp.LpMaximize)
     
     # Create a binary decision variable for every player (1 if selected, 0 if not selected)
+    # Using explicit dict comprehension is robust across all PuLP versions (v2, v3, v4)
+    # and avoids PuLP 4.x AttributeError with LpVariable.dicts deprecation.
     player_names = df['Player Name'].tolist()
-    player_vars = pulp.LpVariable.dicts("Player", player_names, cat='Binary')
+    player_vars = {
+        p: pulp.LpVariable(f"Player_{i}", cat='Binary')
+        for i, p in enumerate(player_names)
+    }
     
     # Create quick-lookup dictionaries for optimization properties to speed up LP equation building
     fantasy_dict = dict(zip(df['Player Name'], df['Fantasy_Score']))
