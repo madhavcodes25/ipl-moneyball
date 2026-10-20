@@ -118,6 +118,7 @@ def render_sidebar(player_list, raw_data):
                     max_value=float(budget),
                     value=default_cost,
                     step=0.25,
+                    format="%.2f",
                     key=f"sidebar_retention_{player}",
                 )
 
@@ -154,6 +155,7 @@ def render_sidebar(player_list, raw_data):
                     max_value=float(budget),
                     value=default_cost,
                     step=0.25,
+                    format="%.2f",
                     key=f"sidebar_customprice_{player}",
                 )
 
@@ -261,8 +263,8 @@ def render_market_analysis_tab(scored_data: pd.DataFrame):
         )
         gems.index += 1
         gems.columns = ["Player", "Role", "Price (Cr)", "Fantasy Score", "Value Score"]
-        gems["Price (Cr)"] = gems["Price (Cr)"].map("₹{:.2f}".format)
-        gems["Fantasy Score"] = gems["Fantasy Score"].map("{:.3f}".format)
+        gems["Price (Cr)"] = gems["Price (Cr)"].map("₹{:.2f} Cr".format)
+        gems["Fantasy Score"] = gems["Fantasy Score"].map("{:.2f}".format)
         gems["Value Score"] = gems["Value Score"].map("{:.3f}".format)
         st.dataframe(gems, use_container_width=True, height=380)
 
@@ -277,8 +279,8 @@ def render_market_analysis_tab(scored_data: pd.DataFrame):
         )
         overpaid.index += 1
         overpaid.columns = ["Player", "Role", "Price (Cr)", "Fantasy Score", "Value Score"]
-        overpaid["Price (Cr)"] = overpaid["Price (Cr)"].map("₹{:.2f}".format)
-        overpaid["Fantasy Score"] = overpaid["Fantasy Score"].map("{:.3f}".format)
+        overpaid["Price (Cr)"] = overpaid["Price (Cr)"].map("₹{:.2f} Cr".format)
+        overpaid["Fantasy Score"] = overpaid["Fantasy Score"].map("{:.2f}".format)
         overpaid["Value Score"] = overpaid["Value Score"].map("{:.3f}".format)
         st.dataframe(overpaid, use_container_width=True, height=380)
 
@@ -373,16 +375,47 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
         "Economy Rate": "Econ",
     })
 
+    # Format numbers cleanly so they don't display like 16.000000
+    if "Price (Cr)" in scout_display.columns:
+        scout_display["Price (Cr)"] = scout_display["Price (Cr)"].round(2)
+    if "Fantasy Score" in scout_display.columns:
+        scout_display["Fantasy Score"] = scout_display["Fantasy Score"].round(2)
+    if "Value Score" in scout_display.columns:
+        scout_display["Value Score"] = scout_display["Value Score"].round(3)
+    if "Bat Avg" in scout_display.columns:
+        scout_display["Bat Avg"] = scout_display["Bat Avg"].round(2)
+    if "SR" in scout_display.columns:
+        scout_display["SR"] = scout_display["SR"].round(1)
+    if "Econ" in scout_display.columns:
+        scout_display["Econ"] = scout_display["Econ"].round(2)
+    if "Runs" in scout_display.columns:
+        scout_display["Runs"] = scout_display["Runs"].fillna(0).astype(int)
+    if "Wickets" in scout_display.columns:
+        scout_display["Wickets"] = scout_display["Wickets"].fillna(0).astype(int)
+
+    scout_column_config = {
+        "Price (Cr)": st.column_config.NumberColumn("Price (Cr)", format="₹%.2f Cr"),
+        "Fantasy Score": st.column_config.NumberColumn("Fantasy Score", format="%.2f"),
+        "Value Score": st.column_config.NumberColumn("Value Score", format="%.3f"),
+        "Bat Avg": st.column_config.NumberColumn("Bat Avg", format="%.2f"),
+        "SR": st.column_config.NumberColumn("SR", format="%.1f"),
+        "Econ": st.column_config.NumberColumn("Econ", format="%.2f"),
+        "Runs": st.column_config.NumberColumn("Runs", format="%d"),
+        "Wickets": st.column_config.NumberColumn("Wickets", format="%d"),
+    }
+
     # Use background_gradient only on numeric columns that definitely exist
     gradient_cols = [c for c in ["Fantasy Score", "Value Score"] if c in scout_display.columns]
-    if gradient_cols:
-        st.dataframe(
-            scout_display.style.background_gradient(subset=gradient_cols, cmap="YlGn"),
-            use_container_width=True,
-            height=500,
-        )
-    else:
-        st.dataframe(scout_display, use_container_width=True, height=500)
+    styled_scout = (
+        scout_display.style.background_gradient(subset=gradient_cols, cmap="YlGn")
+        if gradient_cols else scout_display
+    )
+    st.dataframe(
+        styled_scout,
+        use_container_width=True,
+        height=500,
+        column_config=scout_column_config,
+    )
 
     st.caption(f"Showing {len(scout_display)} players. Sorted by Value Score (descending).")
 
@@ -524,18 +557,40 @@ def render_optimizer_tab(params: dict, scored_data: pd.DataFrame, raw_data: pd.D
         "Fantasy_Score": "Fantasy Points",
         "Value_Score": "Value Score",
         "Is_Foreign": "Overseas Player",
-    })
+    }).copy()
+
+    # Format numeric columns cleanly so they don't display as 16.000000
+    display_squad["Auction Price (Cr)"] = display_squad["Auction Price (Cr)"].round(2)
+    display_squad["Fantasy Points"] = display_squad["Fantasy Points"].round(2)
+    display_squad["Value Score"] = display_squad["Value Score"].round(3)
+
+    squad_column_config = {
+        "Auction Price (Cr)": st.column_config.NumberColumn(
+            "Auction Price (Cr)",
+            format="₹%.2f Cr",
+        ),
+        "Fantasy Points": st.column_config.NumberColumn(
+            "Fantasy Points",
+            format="%.2f",
+        ),
+        "Value Score": st.column_config.NumberColumn(
+            "Value Score",
+            format="%.3f",
+        ),
+    }
 
     gradient_cols = [c for c in ["Fantasy Points", "Value Score"] if c in display_squad.columns]
-    if gradient_cols:
-        st.dataframe(
-            display_squad.style.background_gradient(subset=gradient_cols, cmap="YlGn"),
-            use_container_width=True,
-            hide_index=True,
-            height=450,
-        )
-    else:
-        st.dataframe(display_squad, use_container_width=True, hide_index=True, height=450)
+    styled_squad = (
+        display_squad.style.background_gradient(subset=gradient_cols, cmap="YlGn")
+        if gradient_cols else display_squad
+    )
+    st.dataframe(
+        styled_squad,
+        use_container_width=True,
+        hide_index=True,
+        height=450,
+        column_config=squad_column_config,
+    )
 
     csv = display_squad.to_csv(index=False).encode("utf-8")
     st.download_button(
