@@ -29,21 +29,19 @@ Traditional IPL auction strategy is driven by reputation, hype, and gut feel. Th
 
 Each player's performance across batting and bowling is condensed into a single `Fantasy_Score` using **Min-Max normalization**:
 
-```math
-Fantasy_Score =
-  (norm_Runs × 1.5 + norm_SR × 0.75 + norm_Avg × 0.75) × w_bat
-+ (norm_Wkts × 1.5 + norm_Econ × 0.75 + norm_BowlAvg × 0.75) × w_bowl
-```
+$$
+\text{Fantasy Score} = \Big(\text{Runs}_{\text{norm}} \times 1.5 + \text{SR}_{\text{norm}} \times 0.75 + \text{Avg}_{\text{norm}} \times 0.75\Big) \cdot w_{\text{bat}} + \Big(\text{Wkts}_{\text{norm}} \times 1.5 + \text{Econ}_{\text{norm}} \times 0.75 + \text{BowlAvg}_{\text{norm}} \times 0.75\Big) \cdot w_{\text{bowl}}
+$$
 
-- All metrics are min-max scaled to `[0, 1]` using only **qualified** players (≥100 runs or ≥5 wickets) as boundaries — preventing tail-enders with inflated small-sample stats from gaming the score.
+- All metrics are min-max scaled to $[0, 1]$ using only **qualified** players ($\ge 100$ runs or $\ge 5$ wickets) as boundaries — preventing tail-enders with inflated small-sample stats from gaming the score.
 - Players with fewer than 30 runs or 2 wickets have their secondary metrics penalized by 80% to further guard against sample noise.
-- Strategy weights: `w_bat = w_bowl = 1.0` (Balanced), `1.2 / 0.8` (Batting Heavy), `0.8 / 1.2` (Bowling Heavy).
+- Strategy weights: $w_{\text{bat}} = w_{\text{bowl}} = 1.0$ (Balanced), $1.2 / 0.8$ (Batting Heavy), $0.8 / 1.2$ (Bowling Heavy).
 
 ### Step 2: Value Score (The Moneyball Metric)
 
-```math
-Value_Score = Fantasy_Score / Auction_Price_Cr
-```
+$$
+\text{Value Score} = \frac{\text{Fantasy Score}}{\text{Auction Price (Cr)}}
+$$
 
 This single number answers *"how much output do you get per crore spent?"* — the exact question Moneyball asks about baseball players. Players with a high Value Score but low absolute cost are the auction targets.
 
@@ -53,17 +51,23 @@ For each player, we check whether any other player exists with **both a higher F
 
 ### Step 4: Integer Linear Programming
 
-Team selection is formulated as a **Binary ILP** solved by PuLP + CBC:
+Team selection is formulated as a **Binary Integer Linear Program (ILP)** solved by PuLP + CBC:
 
-| Element | Definition |
-|---|---|
-| Decision variable | `x_i ∈ {0, 1}` — 1 if player i is selected |
-| Objective | Maximise `Σ x_i × Fantasy_Score_i` |
-| Squad size | `Σ x_i = 11` |
-| Budget cap | `Σ x_i × Cost_i ≤ Budget` |
-| Overseas limit | `Σ x_i × is_foreign_i ≤ 4` |
-| Composition | At least 1 WK, ≥ 5 bowling options, ≥ 6 batting options |
-| Optional | Forced inclusions / exclusions, exact role counts (Strict mode) |
+$$
+\max \sum_{i=1}^{n} x_i \cdot \text{Fantasy Score}_i
+$$
+
+Subject to the following constraints:
+
+| Constraint | Mathematical Formulation | Description |
+|---|---|---|
+| **Binary selection** | $x_i \in \{0, 1\}$ | $x_i = 1$ if player $i$ is drafted, $0$ otherwise |
+| **Squad size** | $\sum_{i=1}^{n} x_i = 11$ | Exactly 11 players in the starting XI |
+| **Budget cap** | $\sum_{i=1}^{n} x_i \cdot \text{Cost}_i \le \text{Budget}$ | Total expenditure within auction purse |
+| **Overseas limit** | $\sum_{i=1}^{n} x_i \cdot \text{Overseas}_i \le 4$ | Maximum of 4 foreign players |
+| **Wicketkeeper** | $\sum_{i \in \text{WK}} x_i \ge 1$ | At least 1 designated wicketkeeper |
+| **Batting depth** | $\sum_{i \in \text{Bat/AllR}} x_i \ge 6$ | Minimum 6 recognized batting options |
+| **Bowling depth** | $\sum_{i \in \text{Bowl/AllR}} x_i \ge 5$ | Minimum 5 recognized bowling options |
 
 ---
 
