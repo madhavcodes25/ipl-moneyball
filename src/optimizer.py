@@ -80,15 +80,18 @@ def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
     # --- PHASE SPECIALIST BONUS ---
     # Composite specialist scores per phase:
     #
-    #   Batting  = 0.4 × norm(SR) + 0.3 × norm(runs) + 0.3 × norm(avg)
-    #     - SR:   scoring rate / aggression
-    #     - Runs: volume / consistency in that phase (phase-specific)
-    #     - Avg:  quality — penalises cheap dismissals
+    #   Batting  = 0.4 × norm(phase_SR) + 0.3 × norm(phase_runs) + 0.3 × norm(phase_avg)
+    #     - All stats are phase-specific (PP / Middle / Death), not career averages.
+    #     - SR:   scoring rate / aggression in that phase
+    #     - Runs: volume / consistency in that phase
+    #     - Avg:  quality — penalises cheap dismissals in that phase
     #
-    #   Bowling  = 0.3 × norm(inv_economy) + 0.5 × norm(raw_wkts) + 0.2 × norm(wkts_per_over)
-    #     - raw_wkts (highest weight): rewards proven wicket-takers (Bhuvi 44 >> mystery bowler 3)
-    #     - inv_economy: containment
-    #     - wkts_per_over: rate signal as a tiebreaker (lower weight to avoid small-sample inflation)
+    #   Bowling  = 0.5 × norm(phase_wkts) + 0.5 × norm(inv_phase_econ)
+    #     - Both stats are phase-specific.
+    #     - phase_wkts: total wickets taken IN that phase — primary signal (Bhuvi 44 >> Bracewell 3)
+    #     - inv_econ:   containment in that phase
+    #     - wkts_per_over was removed: it is derived from the same data as wkts+balls and
+    #       disproportionately inflates small-sample players.
 
     def _minmax_norm(series: pd.Series, invert: bool = False) -> pd.Series:
         """Min-max normalize a series to [0,1]; invert for 'lower is better' metrics."""
@@ -121,25 +124,22 @@ def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
         else:
             bat_composite[phase_key] = sr_norm  # fallback
 
-    # --- Bowling composite per phase: raw_wkts (heavy) + Economy + wkts_per_over (tiebreaker) ---
-    # Raw wickets get highest weight (0.5) so a proven wicket-taker like Bhuvi (44 wkts)
-    # always outranks a small-sample curiosity like Bracewell (3 wkts, fluky high rate).
+    # --- Bowling composite per phase: phase wickets (50%) + inv phase economy (50%) ---
+    # Both metrics are phase-specific — economy in THAT phase, wickets in THAT phase.
+    # wkts_per_over removed: redundant with wkts+balls and inflates small-sample players.
     bowl_phase_map = {
-        "pp":     ("pp_bowl_econ",     "pp_bowl_wkts",     "pp_bowl_wkts_po"),
-        "middle": ("middle_bowl_econ", "middle_bowl_wkts", "middle_bowl_wkts_po"),
-        "death":  ("death_bowl_econ",  "death_bowl_wkts",  "death_bowl_wkts_po"),
+        "pp":     ("pp_bowl_econ",     "pp_bowl_wkts"),
+        "middle": ("middle_bowl_econ", "middle_bowl_wkts"),
+        "death":  ("death_bowl_econ",  "death_bowl_wkts"),
     }
     bowl_composite = {}
-    for phase_key, (econ_col, wkts_col, wpo_col) in bowl_phase_map.items():
+    for phase_key, (econ_col, wkts_col) in bowl_phase_map.items():
         econ_norm = _minmax_norm(df[econ_col], invert=True) if econ_col in df.columns else pd.Series(0.0, index=df.index)
         wkts_norm = _minmax_norm(df[wkts_col])              if wkts_col in df.columns else pd.Series(0.0, index=df.index)
-        wpo_norm  = _minmax_norm(df[wpo_col])               if wpo_col  in df.columns else pd.Series(0.0, index=df.index)
 
-        if wkts_col in df.columns and wpo_col in df.columns:
-            # 0.3 economy + 0.5 raw wickets + 0.2 wkts/over (tiebreaker)
-            bowl_composite[phase_key] = 0.3 * econ_norm + 0.5 * wkts_norm + 0.2 * wpo_norm
-        elif wkts_col in df.columns:
-            bowl_composite[phase_key] = 0.5 * econ_norm + 0.5 * wkts_norm
+        if wkts_col in df.columns:
+            # Equal weight: 50% phase wickets + 50% phase economy
+            bowl_composite[phase_key] = 0.5 * wkts_norm + 0.5 * econ_norm
         else:
             bowl_composite[phase_key] = econ_norm
 

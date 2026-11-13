@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.optimizer import calculate_fantasy, optimize_team, get_efficient_frontier
 from src.phase_stats import load_phase_stats, PAKISTANI_PLAYERS, IPL_COMP_IDS
+from src.bbb_data_generator import generate_bbb_stats
 
 
 # ─────────────────────────────────────────────
@@ -279,12 +280,21 @@ class TestLoadPhaseStats:
         assert "player_name" in phase_data.columns
 
     def test_expected_phase_columns_present(self, phase_data):
+        """Schema: phase batting (sr/runs/avg) and bowling (econ/wkts) — no wkts_per_over."""
         expected = [
-            "pp_bat_sr", "middle_bat_sr", "death_bat_sr",
-            "pp_bowl_econ", "middle_bowl_econ", "death_bowl_econ",
+            "pp_bat_sr",   "middle_bat_sr",   "death_bat_sr",
+            "pp_bat_runs", "middle_bat_runs",  "death_bat_runs",
+            "pp_bat_avg",  "middle_bat_avg",   "death_bat_avg",
+            "pp_bowl_econ","middle_bowl_econ","death_bowl_econ",
+            "pp_bowl_wkts","middle_bowl_wkts","death_bowl_wkts",
         ]
         for col in expected:
             assert col in phase_data.columns, f"Missing column: {col}"
+
+    def test_no_wkts_per_over_columns(self, phase_data):
+        """wkts_per_over columns must NOT exist — they were removed."""
+        for col in phase_data.columns:
+            assert "wkts_po" not in col, f"Unexpected wkts_per_over column found: {col}"
 
     def test_has_multiple_players(self, phase_data):
         assert len(phase_data) > 50, "Expected >50 unique players with phase data"
@@ -326,17 +336,30 @@ class TestCalculateFantasyWithPhase:
 
     @pytest.fixture
     def pool_with_phase(self, minimal_player_pool):
-        """Add dummy phase stat columns to the standard fixture."""
+        """Add dummy phase stat columns to the standard fixture.
+
+        Bowling composite now uses phase-specific wickets + economy (no wkts_per_over).
+        """
         df = minimal_player_pool.copy()
         rng = np.random.default_rng(42)
         # Give some players phase stats, leave others as NaN
         n = len(df)
-        df["pp_bat_sr"] = np.where(rng.random(n) > 0.5, rng.uniform(100, 200, n), np.nan)
-        df["middle_bat_sr"] = np.where(rng.random(n) > 0.5, rng.uniform(90, 180, n), np.nan)
-        df["death_bat_sr"] = np.where(rng.random(n) > 0.5, rng.uniform(110, 220, n), np.nan)
-        df["pp_bowl_econ"] = np.where(rng.random(n) > 0.5, rng.uniform(5, 10, n), np.nan)
+        df["pp_bat_sr"]       = np.where(rng.random(n) > 0.5, rng.uniform(100, 200, n), np.nan)
+        df["middle_bat_sr"]   = np.where(rng.random(n) > 0.5, rng.uniform(90, 180, n), np.nan)
+        df["death_bat_sr"]    = np.where(rng.random(n) > 0.5, rng.uniform(110, 220, n), np.nan)
+        df["pp_bat_runs"]     = np.where(rng.random(n) > 0.5, rng.uniform(20, 150, n), np.nan)
+        df["middle_bat_runs"] = np.where(rng.random(n) > 0.5, rng.uniform(20, 200, n), np.nan)
+        df["death_bat_runs"]  = np.where(rng.random(n) > 0.5, rng.uniform(10, 100, n), np.nan)
+        df["pp_bat_avg"]      = np.where(rng.random(n) > 0.5, rng.uniform(10, 50, n), np.nan)
+        df["middle_bat_avg"]  = np.where(rng.random(n) > 0.5, rng.uniform(10, 60, n), np.nan)
+        df["death_bat_avg"]   = np.where(rng.random(n) > 0.5, rng.uniform(5, 40, n), np.nan)
+        # Bowling: phase wickets + phase economy (no wkts_per_over)
+        df["pp_bowl_econ"]     = np.where(rng.random(n) > 0.5, rng.uniform(5, 10, n), np.nan)
         df["middle_bowl_econ"] = np.where(rng.random(n) > 0.5, rng.uniform(5, 11, n), np.nan)
-        df["death_bowl_econ"] = np.where(rng.random(n) > 0.5, rng.uniform(7, 14, n), np.nan)
+        df["death_bowl_econ"]  = np.where(rng.random(n) > 0.5, rng.uniform(7, 14, n), np.nan)
+        df["pp_bowl_wkts"]     = np.where(rng.random(n) > 0.5, rng.integers(0, 20, n).astype(float), np.nan)
+        df["middle_bowl_wkts"] = np.where(rng.random(n) > 0.5, rng.integers(0, 25, n).astype(float), np.nan)
+        df["death_bowl_wkts"]  = np.where(rng.random(n) > 0.5, rng.integers(0, 15, n).astype(float), np.nan)
         return df
 
     def test_phase_score_column_created(self, pool_with_phase):
@@ -382,18 +405,29 @@ class TestPhaseSpecialistConstraints:
         """
         Augments the standard player pool with phase specialist boolean tags
         so that specialist constraint tests can run without real ball-by-ball data.
+
+        Bowling composite now uses phase-specific wickets + economy (no wkts_per_over).
         """
         df = minimal_player_pool.copy()
         rng = np.random.default_rng(99)
         n = len(df)
-        # Give random phase stats so calculate_fantasy can build specialist tags
-        df["pp_bat_sr"]    = rng.uniform(100, 200, n)
-        df["death_bat_sr"] = rng.uniform(110, 220, n)
-        df["pp_bowl_econ"] = rng.uniform(5, 10, n)
-        df["death_bowl_econ"] = rng.uniform(7, 14, n)
-        # Ensure at least some players get each tag
-        df["middle_bat_sr"]   = rng.uniform(90, 180, n)
-        df["middle_bowl_econ"]= rng.uniform(5, 11, n)
+        # Batting phase stats
+        df["pp_bat_sr"]      = rng.uniform(100, 200, n)
+        df["death_bat_sr"]   = rng.uniform(110, 220, n)
+        df["middle_bat_sr"]  = rng.uniform(90, 180, n)
+        df["pp_bat_runs"]    = rng.uniform(20, 150, n)
+        df["death_bat_runs"] = rng.uniform(10, 100, n)
+        df["middle_bat_runs"]= rng.uniform(20, 200, n)
+        df["pp_bat_avg"]     = rng.uniform(10, 50, n)
+        df["death_bat_avg"]  = rng.uniform(5, 40, n)
+        df["middle_bat_avg"] = rng.uniform(10, 60, n)
+        # Bowling phase stats: wickets + economy (no wkts_per_over)
+        df["pp_bowl_econ"]     = rng.uniform(5, 10, n)
+        df["death_bowl_econ"]  = rng.uniform(7, 14, n)
+        df["middle_bowl_econ"] = rng.uniform(5, 11, n)
+        df["pp_bowl_wkts"]     = rng.integers(0, 20, n).astype(float)
+        df["death_bowl_wkts"]  = rng.integers(0, 15, n).astype(float)
+        df["middle_bowl_wkts"] = rng.integers(0, 25, n).astype(float)
         return calculate_fantasy(df)
 
     def test_pp_bat_specialist_constraint_honoured(self, pool_with_specialists):
@@ -434,3 +468,74 @@ class TestPhaseSpecialistConstraints:
         team, score = optimize_team(pool_with_specialists, budget=120.0)
         assert team is not None
         assert len(team) == 11
+
+
+# ─────────────────────────────────────────────
+# BBB Data Generator tests
+# ─────────────────────────────────────────────
+
+class TestBBBDataGenerator:
+    """Tests for src.bbb_data_generator.generate_bbb_stats()."""
+
+    @pytest.fixture(scope="class")
+    def bbb_data(self):
+        """Generate BBB derived stats once for the whole class."""
+        return generate_bbb_stats()
+
+    def test_returns_dataframe(self, bbb_data):
+        assert isinstance(bbb_data, pd.DataFrame)
+
+    def test_has_required_columns(self, bbb_data):
+        required = [
+            "Player Name", "Role", "Subrole", "Is_Foreign", "Cost_Cr",
+            "Batting Runs", "Batting Average", "Batting Strike Rate",
+            "Wickets", "Economy Rate", "Bowling Average",
+        ]
+        for col in required:
+            assert col in bbb_data.columns, f"Missing column: {col}"
+
+    def test_has_sufficient_players(self, bbb_data):
+        assert len(bbb_data) >= 300, f"Expected >=300 players, got {len(bbb_data)}"
+
+    def test_no_pakistani_players(self, bbb_data):
+        """No Pakistani nationals should appear in the generated stats."""
+        from src.phase_stats import PAKISTANI_PLAYERS
+        for pak_player in PAKISTANI_PLAYERS:
+            assert pak_player not in bbb_data["Player Name"].values, (
+                f"Pakistani player '{pak_player}' found in BBB derived stats"
+            )
+
+    def test_roles_are_valid(self, bbb_data):
+        valid_roles = {"Batsman", "Bowler", "All-Rounder"}
+        assert set(bbb_data["Role"].unique()).issubset(valid_roles), (
+            f"Invalid roles found: {set(bbb_data['Role'].unique()) - valid_roles}"
+        )
+
+    def test_no_negative_costs(self, bbb_data):
+        assert (bbb_data["Cost_Cr"] >= 0).all(), "Negative costs found"
+
+    def test_no_negative_stats(self, bbb_data):
+        for col in ["Batting Runs", "Batting Strike Rate", "Batting Average",
+                    "Wickets", "Economy Rate", "Bowling Average"]:
+            assert (bbb_data[col] >= 0).all(), f"Negative values in {col}"
+
+    def test_wk_players_have_subrole_wk(self, bbb_data):
+        """Known WK players should be tagged as WK subrole."""
+        known_wks = ["Mahendra Singh Dhoni", "Sanju Samson", "Jos Buttler", "Rishabh Pant"]
+        for wk in known_wks:
+            row = bbb_data[bbb_data["Player Name"] == wk]
+            if not row.empty:
+                assert row.iloc[0]["Subrole"] == "WK", (
+                    f"{wk} should be WK but got {row.iloc[0]['Subrole']}"
+                )
+
+    def test_no_duplicate_players(self, bbb_data):
+        assert bbb_data["Player Name"].nunique() == len(bbb_data), (
+            "Duplicate player entries in BBB derived stats"
+        )
+
+    def test_csv_written(self):
+        """bbb_derived_stats.csv must exist after generation."""
+        from pathlib import Path
+        csv_path = Path("data/processed/bbb_derived_stats.csv")
+        assert csv_path.exists(), "bbb_derived_stats.csv not written"

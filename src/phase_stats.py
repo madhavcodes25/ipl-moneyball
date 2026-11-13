@@ -7,6 +7,21 @@ from the RR Hackathon ball-by-ball dataset covering IPL 2022–2026.
 Each player's per-season phase stats are combined using recency-weighted
 averages (older seasons contribute less) so that recent form matters more.
 
+Bowling Composite (per phase)
+-----------------------------
+  0.5 × norm(phase_wickets)   ← proven wicket-takers rank highest
+  0.5 × norm(inv_phase_econ)  ← containment matters equally
+
+``wkts_per_over`` was deliberately dropped: it is derived from the same
+numerator/denominator as economy + raw wickets and inflates small-sample
+players (e.g. 2 wickets in 12 balls = 1.0 wkts/over vs Bhuvi's 0.3).
+
+Batting Composite (per phase)
+------------------------------
+  0.4 × norm(phase_SR)   ← scoring rate / aggression
+  0.3 × norm(phase_runs) ← volume / consistency
+  0.3 × norm(phase_avg)  ← quality, penalises cheap dismissals
+
 Usage
 -----
     from src.phase_stats import load_phase_stats
@@ -30,7 +45,7 @@ import numpy as np
 IPL_COMP_IDS = {1358, 1715, 2193, 2725, 3298}   # 2022, 2023, 2024, 2025, 2026
 
 # More recent seasons carry more weight so recent form dominates
-SEASON_WEIGHTS: dict[str, int] = {
+SEASON_WEIGHTS: dict = {
     "2022": 1,
     "2023": 2,
     "2024": 3,
@@ -46,8 +61,8 @@ PHASE_BINS   = [-1, 5, 14, 19]          # right-inclusive with pd.cut
 PHASE_LABELS = ["Powerplay", "Middle", "Death"]
 
 # Minimum ball thresholds — below these the sample is too small to trust
-MIN_BAT_BALLS: dict[str, int] = {"Powerplay": 30, "Middle": 20, "Death": 15}
-MIN_BOWL_BALLS: dict[str, int] = {"Powerplay": 24, "Middle": 30, "Death": 24}
+MIN_BAT_BALLS: dict = {"Powerplay": 30, "Middle": 20, "Death": 15}
+MIN_BOWL_BALLS: dict = {"Powerplay": 24, "Middle": 30, "Death": 24}
 
 # Pakistani player exclusion list (applied defensively)
 PAKISTANI_PLAYERS = {
@@ -245,13 +260,16 @@ def _compute_bowling_phase_stats(ipl: pd.DataFrame) -> pd.DataFrame:
     Computes per-player, per-phase, per-season bowling stats then collapses
     across seasons using recency-weighted averages.
 
-    Stats computed
-    --------------
+    Stats computed (phase-specific)
+    --------------------------------
     - Economy (bowl_econ): runs conceded per 6 balls — measures containment
-    - Wickets per Over (bowl_wkts_po): bowler-attributed wickets per 6 balls —
-      measures threat level independent of the economy. A death bowler who
-      gives 10 runs but takes 2 wickets in 2 overs is elite; economy alone
-      would punish them.
+    - Wickets (bowl_wkts): total bowler-attributed wickets in that phase —
+      the primary measure of wicket-taking ability (volume, not just rate).
+
+    Note: wkts_per_over (rate metric) was removed because it is derivable
+    from wickets and balls and inflates small-sample players who happened to
+    get lucky in a handful of deliveries.  Raw phase wickets + economy gives
+    a cleaner, non-redundant signal.
 
     Economy is computed on all deliveries (wides count as balls + runs);
     wickets exclude run-outs and 'obstructing the field' (attributed to fielder).
@@ -261,10 +279,9 @@ def _compute_bowling_phase_stats(ipl: pd.DataFrame) -> pd.DataFrame:
 
     Returns:
         Wide DataFrame indexed by player_name with columns:
-        pp_bowl_econ, middle_bowl_econ, death_bowl_econ,
-        pp_bowl_wkts_po, middle_bowl_wkts_po, death_bowl_wkts_po,
-        pp_bowl_wkts, middle_bowl_wkts, death_bowl_wkts,
-        pp_bowl_balls, middle_bowl_balls, death_bowl_balls
+        pp_bowl_econ,   middle_bowl_econ,   death_bowl_econ,
+        pp_bowl_wkts,   middle_bowl_wkts,   death_bowl_wkts,
+        pp_bowl_balls,  middle_bowl_balls,  death_bowl_balls
     """
     bowl = ipl.copy()
 
@@ -293,38 +310,34 @@ def _compute_bowling_phase_stats(ipl: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Economy = runs per 6 balls
-    agg["economy"]      = ((agg["runs_conceded"] / agg["balls"]) * 6).round(3)
-    # Wickets per over = wickets per 6 balls (the bowling equivalent of SR)
-    agg["wkts_per_over"] = ((agg["wickets"] / agg["balls"]) * 6).round(4)
-    agg["weight"]        = agg["season"].map(SEASON_WEIGHTS).fillna(1)
+    agg["economy"] = ((agg["runs_conceded"] / agg["balls"]) * 6).round(3)
+    agg["weight"]  = agg["season"].map(SEASON_WEIGHTS).fillna(1)
 
     records = []
     for (player, phase), grp in agg.groupby(["bowler_name", "phase"], observed=True):
-        w_econ     = _weighted_avg(grp, "economy",       "balls", "weight")
-        w_wkts_po  = _weighted_avg(grp, "wkts_per_over", "balls", "weight")
+        w_econ      = _weighted_avg(grp, "economy", "balls", "weight")
         total_balls = grp["balls"].sum()
-        total_wkts  = grp["wickets"].sum()
+        total_wkts  = grp["wickets"].sum()   # raw phase wickets — simple sum across seasons
         records.append({
-            "player_name":   player,
-            "phase":         phase,
-            "bowl_econ":     w_econ,
-            "bowl_wkts_po":  w_wkts_po,   # wickets per over — the new composite metric
-            "bowl_wickets":  total_wkts,
-            "bowl_balls":    total_balls,
+            "player_name":  player,
+            "phase":        phase,
+            "bowl_econ":    w_econ,
+            "bowl_wickets": total_wkts,       # phase-specific wicket count
+            "bowl_balls":   total_balls,
         })
 
     phase_df = pd.DataFrame(records)
 
-    # Apply minimum ball thresholds — null both economy AND wkts_per_over below threshold
+    # Apply minimum ball thresholds — null stats below threshold
     for phase_name, min_b in MIN_BOWL_BALLS.items():
         mask = (phase_df["phase"] == phase_name) & (phase_df["bowl_balls"] < min_b)
-        phase_df.loc[mask, ["bowl_econ", "bowl_wkts_po"]] = np.nan
+        phase_df.loc[mask, ["bowl_econ", "bowl_wickets"]] = np.nan
 
     # Pivot to wide format
     wide = phase_df.pivot_table(
         index="player_name",
         columns="phase",
-        values=["bowl_econ", "bowl_wkts_po", "bowl_wickets", "bowl_balls"],
+        values=["bowl_econ", "bowl_wickets", "bowl_balls"],
         aggfunc="first",
     )
     wide.columns = [f"{col[1].lower()}_{col[0]}" for col in wide.columns]
@@ -332,9 +345,6 @@ def _compute_bowling_phase_stats(ipl: pd.DataFrame) -> pd.DataFrame:
         "powerplay_bowl_econ":    "pp_bowl_econ",
         "middle_bowl_econ":       "middle_bowl_econ",
         "death_bowl_econ":        "death_bowl_econ",
-        "powerplay_bowl_wkts_po": "pp_bowl_wkts_po",
-        "middle_bowl_wkts_po":    "middle_bowl_wkts_po",
-        "death_bowl_wkts_po":     "death_bowl_wkts_po",
         "powerplay_bowl_wickets": "pp_bowl_wkts",
         "middle_bowl_wickets":    "middle_bowl_wkts",
         "death_bowl_wickets":     "death_bowl_wkts",
@@ -352,18 +362,18 @@ def _compute_bowling_phase_stats(ipl: pd.DataFrame) -> pd.DataFrame:
 def load_phase_stats(data_dir: Path = _DATA_DIR) -> pd.DataFrame:
     """
     Main entry point.  Loads, processes, and returns a tidy per-player
-    phase stats DataFrame that can be merged with IPL_Stats.csv.
+    phase stats DataFrame that can be merged with the player pool.
 
     Columns returned
     ----------------
     player_name,
-    pp_bat_sr, middle_bat_sr, death_bat_sr,                         # batting strike rates
-    pp_bat_boundary_pct, middle_bat_boundary_pct, death_bat_boundary_pct,  # boundary % (4s+6s per 100 balls)
-    pp_bat_balls, middle_bat_balls, death_bat_balls,                 # balls faced (quality gate)
-    pp_bowl_econ, middle_bowl_econ, death_bowl_econ,                 # bowling economies
-    pp_bowl_wkts_po, middle_bowl_wkts_po, death_bowl_wkts_po,       # wickets per over (rate metric)
-    pp_bowl_wkts, middle_bowl_wkts, death_bowl_wkts,                 # raw wickets taken
-    pp_bowl_balls, middle_bowl_balls, death_bowl_balls               # balls bowled (quality gate)
+    pp_bat_sr,     middle_bat_sr,     death_bat_sr,       # phase strike rates
+    pp_bat_runs,   middle_bat_runs,   death_bat_runs,     # phase runs (weighted)
+    pp_bat_avg,    middle_bat_avg,    death_bat_avg,      # phase batting averages
+    pp_bat_balls,  middle_bat_balls,  death_bat_balls,    # balls faced (quality gate)
+    pp_bowl_econ,  middle_bowl_econ,  death_bowl_econ,    # phase economies
+    pp_bowl_wkts,  middle_bowl_wkts,  death_bowl_wkts,   # phase wickets taken
+    pp_bowl_balls, middle_bowl_balls, death_bowl_balls    # balls bowled (quality gate)
 
     Args:
         data_dir: Path to RR-Hackathon-Data directory.

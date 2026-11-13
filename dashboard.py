@@ -684,14 +684,13 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
     st.subheader("⚡ Phase Specialist Analysis")
     st.caption(
         "Ball-by-ball stats from **IPL 2022–2026** (RR Hackathon data) with recency-weighted averages. "
-        "**Bat score** = SR + Runs + Average  ·  **Bowl score** = Economy + Wickets/Over."
+        "**Bat score** = 0.4 × SR + 0.3 × Runs + 0.3 × Avg  ·  **Bowl score** = 0.5 × Phase Wickets + 0.5 × Economy (inverted)."
     )
 
     BAT_SR_COLS    = {"Powerplay": "pp_bat_sr",    "Middle": "middle_bat_sr",    "Death": "death_bat_sr"}
     BAT_RUNS_COLS  = {"Powerplay": "pp_bat_runs",  "Middle": "middle_bat_runs",  "Death": "death_bat_runs"}
     BAT_AVG_COLS   = {"Powerplay": "pp_bat_avg",   "Middle": "middle_bat_avg",   "Death": "death_bat_avg"}
     BOWL_EC_COLS   = {"Powerplay": "pp_bowl_econ", "Middle": "middle_bowl_econ", "Death": "death_bowl_econ"}
-    BOWL_WPO_COLS  = {"Powerplay": "pp_bowl_wkts_po","Middle":"middle_bowl_wkts_po","Death":"death_bowl_wkts_po"}
     BOWL_WK_COLS   = {"Powerplay": "pp_bowl_wkts", "Middle": "middle_bowl_wkts", "Death": "death_bowl_wkts"}
 
     phase_available = any(col in scored_data.columns for col in BAT_SR_COLS.values())
@@ -701,7 +700,7 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
 
     all_phase_cols = (
         list(BAT_SR_COLS.values()) + list(BAT_RUNS_COLS.values()) + list(BAT_AVG_COLS.values()) +
-        list(BOWL_EC_COLS.values()) + list(BOWL_WPO_COLS.values()) + list(BOWL_WK_COLS.values())
+        list(BOWL_EC_COLS.values()) + list(BOWL_WK_COLS.values())
     )
     phase_df = scored_data[
         ["Player Name", "Role", "Cost_Cr"] + [c for c in all_phase_cols if c in scored_data.columns]
@@ -778,38 +777,36 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
         else:
             st.info("Batting phase data not loaded.")
 
-    # ---- Bowling Specialists: Economy + Wkts/Over composite ----
+    # ---- Bowling Specialists: Phase Wickets + Phase Economy (50/50) ----
     with col_bowl:
-        bowl_ec_col  = BOWL_EC_COLS[phase_key]
-        bowl_wpo_col = BOWL_WPO_COLS[phase_key]
-        bowl_wk_col  = BOWL_WK_COLS[phase_key]
+        bowl_ec_col = BOWL_EC_COLS[phase_key]
+        bowl_wk_col = BOWL_WK_COLS[phase_key]
         st.markdown(f"### 🎯 {phase_select} Bowling Specialists")
-        st.caption("Score = **0.5 × Economy** (inverted) + **0.5 × Wkts/Over** — rewards containment AND wicket-taking threat.")
+        st.caption(
+            "Score = **0.5 × Phase Wickets** + **0.5 × Economy** (inverted) — "
+            "rewards proven wicket-takers in this specific phase AND containment."
+        )
         if bowl_ec_col in phase_df.columns:
             bowl_view = phase_df[phase_df[bowl_ec_col].notna()].copy()
-            bowl_view = bowl_view.rename(columns={bowl_ec_col: "Economy"})
-            if bowl_wpo_col in bowl_view.columns:
-                bowl_view = bowl_view.rename(columns={bowl_wpo_col: "Wkts/Over"})
+            # Rename to display-friendly labels
+            ph_lbl = phase_key  # e.g. "Powerplay"
+            ec_lbl = f"{ph_lbl} Economy"
+            wk_lbl = f"{ph_lbl} Wickets"
+            bowl_view = bowl_view.rename(columns={bowl_ec_col: ec_lbl})
             if bowl_wk_col in bowl_view.columns:
-                bowl_view = bowl_view.rename(columns={bowl_wk_col: "Wkts (Total)"})
+                bowl_view = bowl_view.rename(columns={bowl_wk_col: wk_lbl})
 
-            ec_max = bowl_view["Economy"].max(); ec_min = bowl_view["Economy"].min()
-            bowl_view["_norm_econ"] = ((ec_max - bowl_view["Economy"]) / (ec_max - ec_min + 1e-6)).clip(0, 1)
-            if "Wkts (Total)" in bowl_view.columns:
-                wk_max = bowl_view["Wkts (Total)"].max(); wk_min = bowl_view["Wkts (Total)"].min()
-                bowl_view["_norm_wkts"] = ((bowl_view["Wkts (Total)"] - wk_min) / (wk_max - wk_min + 1e-6)).clip(0, 1)
+            ec_max = bowl_view[ec_lbl].max(); ec_min = bowl_view[ec_lbl].min()
+            bowl_view["_norm_econ"] = ((ec_max - bowl_view[ec_lbl]) / (ec_max - ec_min + 1e-6)).clip(0, 1)
+            if wk_lbl in bowl_view.columns:
+                wk_max = bowl_view[wk_lbl].max(); wk_min = bowl_view[wk_lbl].min()
+                bowl_view["_norm_wkts"] = ((bowl_view[wk_lbl] - wk_min) / (wk_max - wk_min + 1e-6)).clip(0, 1)
+                # 50% phase wickets + 50% phase economy (no wkts/over — removed)
+                bowl_view["Composite"] = (0.5 * bowl_view["_norm_wkts"] + 0.5 * bowl_view["_norm_econ"]).round(3)
             else:
-                bowl_view["_norm_wkts"] = 0.0
-            if "Wkts/Over" in bowl_view.columns:
-                wp_max = bowl_view["Wkts/Over"].max(); wp_min = bowl_view["Wkts/Over"].min()
-                bowl_view["_norm_wpo"] = ((bowl_view["Wkts/Over"] - wp_min) / (wp_max - wp_min + 1e-6)).clip(0, 1)
-                # 0.3 economy + 0.5 raw wickets (volume) + 0.2 wkts/over (tiebreaker)
-                bowl_view["Composite"] = (0.3 * bowl_view["_norm_econ"] + 0.5 * bowl_view["_norm_wkts"] + 0.2 * bowl_view["_norm_wpo"]).round(3)
-            else:
-                bowl_view["Composite"] = (0.5 * bowl_view["_norm_econ"] + 0.5 * bowl_view["_norm_wkts"]).round(3)
+                bowl_view["Composite"] = bowl_view["_norm_econ"].round(3)
 
-            keep_cols = ["Player Name", "Role", "Economy"] + (["Wkts/Over"] if "Wkts/Over" in bowl_view.columns else []) + (["Wkts (Total)"] if "Wkts (Total)" in bowl_view.columns else []) + ["Composite"]
-            norm_drop = [c for c in ["_norm_econ", "_norm_wpo"] if c in bowl_view.columns]
+            keep_cols = ["Player Name", "Role", ec_lbl] + ([wk_lbl] if wk_lbl in bowl_view.columns else []) + ["Composite"]
             bowl_top = bowl_view[[c for c in keep_cols if c in bowl_view.columns]].sort_values("Composite", ascending=False).head(15).reset_index(drop=True)
             bowl_top.index += 1
 
@@ -821,17 +818,14 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
                 )
                 fig_bowl.update_layout(xaxis_tickangle=-35, paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"))
                 st.plotly_chart(fig_bowl, use_container_width=True, key=f"phase_bowl_bar_{phase_key}")
-                bowl_top["Economy"] = bowl_top["Economy"].round(2)
+                bowl_top[ec_lbl] = bowl_top[ec_lbl].round(2)
                 col_cfg_bowl = {
-                    "Economy":     st.column_config.NumberColumn("Economy",    format="%.2f"),
-                    "Composite":   st.column_config.NumberColumn("Score",       format="%.3f"),
+                    ec_lbl:      st.column_config.NumberColumn("Economy", format="%.2f"),
+                    "Composite": st.column_config.NumberColumn("Score",   format="%.3f"),
                 }
-                if "Wkts/Over" in bowl_top.columns:
-                    bowl_top["Wkts/Over"] = bowl_top["Wkts/Over"].round(3)
-                    col_cfg_bowl["Wkts/Over"] = st.column_config.NumberColumn("Wkts/Over", format="%.3f")
-                if "Wkts (Total)" in bowl_top.columns:
-                    bowl_top["Wkts (Total)"] = bowl_top["Wkts (Total)"].fillna(0).astype(int)
-                    col_cfg_bowl["Wkts (Total)"] = st.column_config.NumberColumn("Wkts", format="%d")
+                if wk_lbl in bowl_top.columns:
+                    bowl_top[wk_lbl] = bowl_top[wk_lbl].fillna(0).astype(int)
+                    col_cfg_bowl[wk_lbl] = st.column_config.NumberColumn("Wkts", format="%d")
                 st.dataframe(bowl_top, use_container_width=True, height=350, hide_index=False, column_config=col_cfg_bowl)
             else:
                 st.info("No bowling data available for this phase.")
@@ -893,8 +887,8 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
         "pp_bat_sr",   "middle_bat_sr",   "death_bat_sr",
         "pp_bat_runs", "middle_bat_runs", "death_bat_runs",
         "pp_bat_avg",  "middle_bat_avg",  "death_bat_avg",
-        "pp_bowl_econ",    "middle_bowl_econ",    "death_bowl_econ",
-        "pp_bowl_wkts_po", "middle_bowl_wkts_po", "death_bowl_wkts_po",
+        "pp_bowl_econ",  "middle_bowl_econ",  "death_bowl_econ",
+        "pp_bowl_wkts",  "middle_bowl_wkts",  "death_bowl_wkts",
     ]
     present_phase_cols = [c for c in phase_stat_candidates if c in scored_data.columns]
     summary_df = scored_data[summary_base_cols + present_phase_cols].copy()
@@ -906,7 +900,7 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
         "pp_bat_runs": "PP Runs",  "middle_bat_runs": "Mid Runs","death_bat_runs": "Death Runs",
         "pp_bat_avg": "PP Avg",    "middle_bat_avg": "Mid Avg",  "death_bat_avg": "Death Avg",
         "pp_bowl_econ": "PP Econ", "middle_bowl_econ": "Mid Econ","death_bowl_econ": "Death Econ",
-        "pp_bowl_wkts_po": "PP W/Over","middle_bowl_wkts_po": "Mid W/Over","death_bowl_wkts_po": "Death W/Over",
+        "pp_bowl_wkts": "PP Wkts","middle_bowl_wkts": "Mid Wkts","death_bowl_wkts": "Death Wkts",
     }
     summary_df = summary_df.rename(columns={k: v for k, v in rename_map.items() if k in summary_df.columns})
     sort_col = "PP SR" if "PP SR" in summary_df.columns else summary_df.columns[2]
@@ -930,9 +924,9 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
         "PP Econ":      st.column_config.NumberColumn("PP Econ",      format="%.2f"),
         "Mid Econ":     st.column_config.NumberColumn("Mid Econ",     format="%.2f"),
         "Death Econ":   st.column_config.NumberColumn("Death Econ",   format="%.2f"),
-        "PP W/Over":    st.column_config.NumberColumn("PP W/Over",    format="%.3f"),
-        "Mid W/Over":   st.column_config.NumberColumn("Mid W/Over",   format="%.3f"),
-        "Death W/Over": st.column_config.NumberColumn("Death W/Over", format="%.3f"),
+        "PP Wkts":    st.column_config.NumberColumn("PP Wkts",    format="%d"),
+        "Mid Wkts":   st.column_config.NumberColumn("Mid Wkts",   format="%d"),
+        "Death Wkts": st.column_config.NumberColumn("Death Wkts", format="%d"),
     }
     st.dataframe(summary_df, use_container_width=True, height=400, column_config=summary_col_cfg)
     st.caption(f"Showing {len(summary_df)} players with phase data. Sorted by Powerplay SR descending.")
