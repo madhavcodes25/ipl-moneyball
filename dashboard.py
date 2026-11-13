@@ -289,11 +289,24 @@ def render_market_analysis_tab(scored_data: pd.DataFrame):
     col_gems, col_over = st.columns(2)
 
     with col_gems:
-        st.subheader("💎 Hidden Gems (Most Undervalued)")
-        st.caption("High fantasy output per crore spent — ideal auction targets.")
+        col_gh, col_gf = st.columns([1.5, 1])
+        with col_gh:
+            st.subheader("💎 Hidden Gems")
+            st.caption("High output per ₹Cr spent — ideal auction targets.")
+        with col_gf:
+            min_gem_score = st.slider(
+                "Min Fantasy Score",
+                min_value=1.0,
+                max_value=3.0,
+                value=1.8,
+                step=0.1,
+                key="market_min_gem_score",
+                help="Filters out low-volume bench players so only proven performers qualify as gems.",
+            )
+
+        gem_pool = display_df[display_df["Fantasy_Score"] >= min_gem_score]
         gems = (
-            display_df[display_df["Fantasy_Score"] > display_df["Fantasy_Score"].median()]
-            .sort_values("Value_Score", ascending=False)
+            gem_pool.sort_values("Value_Score", ascending=False)
             .head(10)[["Player Name", "Role", "Cost_Cr", "Fantasy_Score", "Value_Score"]]
             .reset_index(drop=True)
         )
@@ -351,7 +364,7 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
     st.subheader("🔍 Player Scouting Database")
     st.caption("Search, filter, and sort all players by any metric. Great for live auction preparation.")
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         role_filter = st.multiselect(
             "Filter by Role",
@@ -371,9 +384,23 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
             "Min Fantasy Score",
             min_value=0.0,
             max_value=max_score if max_score > 0 else 1.0,
-            value=1.0,
+            value=0.0,
             step=0.1,
             key="scout_min_score",
+        )
+    with col4:
+        sort_by = st.selectbox(
+            "Sort By",
+            options=[
+                "Fantasy Score (Highest First)",
+                "Value Score (Highest First)",
+                "Price (Lowest First)",
+                "Price (Highest First)",
+                "Batting Runs (Highest First)",
+                "Wickets (Highest First)",
+            ],
+            index=0,
+            key="scout_sort_by",
         )
 
     scout_df = scored_data.copy()
@@ -394,9 +421,20 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
     # Only keep columns that actually exist in the dataframe
     display_cols = [c for c in display_cols if c in scout_df.columns]
 
+    # Map user sort selection to column + ascending
+    sort_column_map = {
+        "Fantasy Score (Highest First)": ("Fantasy_Score", False),
+        "Value Score (Highest First)": ("Value_Score", False),
+        "Price (Lowest First)": ("Cost_Cr", True),
+        "Price (Highest First)": ("Cost_Cr", False),
+        "Batting Runs (Highest First)": ("Batting Runs", False),
+        "Wickets (Highest First)": ("Wickets", False),
+    }
+    sort_col, sort_asc = sort_column_map.get(sort_by, ("Fantasy_Score", False))
+
     scout_display = (
         scout_df[display_cols]
-        .sort_values("Value_Score", ascending=False)
+        .sort_values(sort_col, ascending=sort_asc)
         .reset_index(drop=True)
     )
     scout_display.index += 1
@@ -533,9 +571,14 @@ def render_optimizer_tab(params: dict, scored_data: pd.DataFrame, raw_data: pd.D
     avg_value = optimal_squad["Value_Score"].mean()
 
     # KPI Metrics
+    st.success(
+        f"🏆 **Optimal Squad Drafted!** "
+        f"Objective: **{total_score:.2f} Total Fantasy Points** · "
+        f"Budget Spent: **₹{spent:.2f} Cr** / ₹{budget:.2f} Cr (₹{budget - spent:.2f} Cr left)"
+    )
     st.subheader("📊 Team Analytics")
     m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("Total Fantasy Points", f"{total_score:.2f}")
+    m1.metric("Total Fantasy Points", f"{total_score:.2f}", help="The objective value maximized by the LP solver across all 11 players.")
     m2.metric("Funds Spent", f"₹{spent:.2f} Cr")
     m3.metric("Funds Remaining", f"₹{budget - spent:.2f} Cr")
     m4.metric("Foreign Players", f"{n_foreign}/4")
@@ -611,7 +654,7 @@ def render_optimizer_tab(params: dict, scored_data: pd.DataFrame, raw_data: pd.D
 
     st.markdown("---")
 
-    st.subheader("📋 Your Optimal Squad")
+    st.subheader(f"📋 Your Optimal Squad — Total Fantasy Points: {total_score:.2f} pts")
     display_squad = optimal_squad.rename(columns={
         "Cost_Cr": "Auction Price (Cr)",
         "Fantasy_Score": "Fantasy Points",
@@ -691,6 +734,13 @@ def render_optimizer_tab(params: dict, scored_data: pd.DataFrame, raw_data: pd.D
         height=450,
         column_config=squad_column_config,
     )
+
+    # Squad Summary Metrics
+    c_s1, c_s2, c_s3, c_s4 = st.columns(4)
+    c_s1.metric("🎯 Total Fantasy Points", f"{total_score:.2f} pts", help="The exact maximized LP objective function value.")
+    c_s2.metric("💰 Total Squad Spend", f"₹{spent:.2f} Cr", f"₹{budget - spent:.2f} Cr remaining")
+    c_s3.metric("📊 Avg Fantasy / Player", f"{optimal_squad['Fantasy_Score'].mean():.2f} pts")
+    c_s4.metric("⚡ Squad Value Efficiency", f"{(total_score / spent):.3f} pts/₹Cr" if spent > 0 else "N/A")
 
     csv = display_squad.to_csv(index=False).encode("utf-8")
     st.download_button(

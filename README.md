@@ -81,19 +81,37 @@ $$
 
 Subject to the following constraints:
 
+#### General Auction & Composition Constraints
 | Constraint | Mathematical Formulation | Description |
 |---|---|---|
 | **Binary selection** | $x_i \in \{0, 1\}$ | $x_i = 1$ if player $i$ is drafted, $0$ otherwise |
 | **Squad size** | $\sum_{i=1}^{n} x_i = 11$ | Exactly 11 players in the starting XI |
 | **Budget cap** | $\sum_{i=1}^{n} x_i \cdot \text{Cost}_i \le \text{Budget}$ | Total expenditure within auction purse |
-| **Overseas limit** | $\sum_{i \in \text{Foreign}} x_i \le 4$ | Maximum of 4 foreign players |
+| **Overseas limit** | $\sum_{i \in \text{Foreign}} x_i \le 4$ | Maximum of 4 foreign players in the XI |
 | **Wicketkeeper** | $\sum_{i \in \text{WK}} x_i \ge 1$ | At least 1 designated wicketkeeper |
+
+#### Bowling Style & Role Composition Constraints (Strict Mode)
+| Constraint | Mathematical Formulation | Description |
+|---|---|---|
+| **Pace Bowling Attack** | $\sum_{i \in \text{Pacer}} x_i \ge \text{num\_pacers}$ | At least $N$ pace bowlers (default $\ge 3$) |
+| **Spin Bowling Attack** | $\sum_{i \in \text{Spinner}} x_i \ge \text{num\_spinners}$ | At least $M$ spin bowlers (default $\ge 2$) |
+| **Exact Batsmen** | $\sum_{i \in \text{Batsman}} x_i = \text{num\_batters}$ | Exact number of pure batsmen (default 4) |
+| **Exact Bowlers** | $\sum_{i \in \text{Bowler}} x_i = \text{num\_bowlers}$ | Exact number of pure bowlers (default 4) |
+| **Exact All-Rounders** | $\sum_{i \in \text{All-Rounder}} x_i = \text{num\_all\_rounders}$ | Exact number of all-rounders (default 3) |
+
+#### Flexible Mode Composition Constraints
+| Constraint | Mathematical Formulation | Description |
+|---|---|---|
 | **Batting depth** | $\sum_{i \in \text{Bat/AllR}} x_i \ge 6$ | Minimum 6 recognized batting options |
 | **Bowling depth** | $\sum_{i \in \text{Bowl/AllR}} x_i \ge 5$ | Minimum 5 recognized bowling options |
-| **PP Bat Specialist** *(optional)* | $\sum_{i \in \text{PP Bat}} x_i \ge 1$ | At least 1 top-quartile Powerplay batter by SR |
-| **Death Bat Specialist** *(optional)* | $\sum_{i \in \text{Death Bat}} x_i \ge 1$ | At least 1 top-quartile Death Overs batter by SR |
-| **PP Bowl Specialist** *(optional)* | $\sum_{i \in \text{PP Bowl}} x_i \ge 1$ | At least 1 top-quartile Powerplay bowler by economy |
-| **Death Bowl Specialist** *(optional)* | $\sum_{i \in \text{Death Bowl}} x_i \ge 1$ | At least 1 top-quartile Death Overs bowler by economy |
+
+#### Phase Specialist Constraints *(Optional)*
+| Constraint | Mathematical Formulation | Description |
+|---|---|---|
+| **PP Bat Specialist** | $\sum_{i \in \text{PP Bat}} x_i \ge 1$ | At least 1 top-quartile Powerplay batter by composite |
+| **Death Bat Specialist** | $\sum_{i \in \text{Death Bat}} x_i \ge 1$ | At least 1 top-quartile Death Overs batter by composite |
+| **PP Bowl Specialist** | $\sum_{i \in \text{PP Bowl}} x_i \ge 1$ | At least 1 top-quartile Powerplay bowler by composite |
+| **Death Bowl Specialist** | $\sum_{i \in \text{Death Bowl}} x_i \ge 1$ | At least 1 top-quartile Death Overs bowler by composite |
 
 ---
 
