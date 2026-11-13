@@ -371,7 +371,7 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
             "Min Fantasy Score",
             min_value=0.0,
             max_value=max_score if max_score > 0 else 1.0,
-            value=0.0,
+            value=1.0,
             step=0.1,
             key="scout_min_score",
         )
@@ -978,7 +978,7 @@ def main():
     with st.expander("ℹ️ Data Sources & Recency Methodology", expanded=False):
         c1, c2, c3 = st.columns(3)
         c1.metric("Player Pool", "381 players", "from IPL 2022–2026 BBB data")
-        c2.metric("Price Source", "IPL 2025 Auction", "latest available per player")
+        c2.metric("Price Source", "IPL 2026 Auction", "81 players with 2026 prices")
         c3.metric("Stats Weighting", "2022→1 … 2026→5", "recent seasons weighted higher")
         st.markdown("""
 **Stats** (Runs, SR, Avg, Economy, Wickets) are **recency-weighted** across up to 5 seasons:
@@ -993,8 +993,9 @@ def main():
 
 This means a player's 2026 performance counts **5× more** than 2022 when computing their career stat.
 
-**Auction Prices**: taken from the most recent IPL auction on record for each player (IPL 2025 mega-auction for 171 players).  
-Players with no auction history (new entrants, overseas players with no IPL record) get a **role-based median estimate** — their `Price Year` column will show `estimate`.
+**Auction Prices**: taken from the most recent IPL auction on record for each player.  
+- **81 players** have verified **IPL 2026** prices (retentions + auction, Dec 2025).  
+- Remaining players get a **role-based median estimate** — their `Price Year` column will show `estimate`.
         """)
     st.divider()
 

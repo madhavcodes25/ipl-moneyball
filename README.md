@@ -3,7 +3,9 @@
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
 ![PuLP](https://img.shields.io/badge/Linear%20Programming-PuLP-orange)
-![Tests](https://img.shields.io/badge/Tests-42%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-53%20passing-brightgreen)
+![Players](https://img.shields.io/badge/Player%20Pool-381%20players-blue)
+![Prices](https://img.shields.io/badge/Prices-IPL%202026%20Auction-gold)
 
 > *"It's about getting things down to one number. Using the stats the way we read them, we'll find value in players that nobody else can see."* — Moneyball (2011)
 
@@ -37,7 +39,7 @@ $$
 - Players with fewer than 30 runs or 2 wickets have their secondary metrics penalized by 80% to guard against small-sample noise.
 - Strategy weights: $w_{\text{bat}} = w_{\text{bowl}} = 1.0$ (Balanced), $1.2 / 0.8$ (Batting Heavy), $0.8 / 1.2$ (Bowling Heavy).
 
-### Step 1b: Phase Specialist Score (New)
+### Step 1b: Phase Specialist Score
 
 Using **ball-by-ball data from IPL 2022–2026** (87,687 deliveries across 5 seasons), each player receives phase-specific performance metrics with **recency-weighted multi-year averages**:
 
@@ -47,13 +49,13 @@ $$
 
 where season weights are $w_{2022}=1,\ w_{2023}=2,\ w_{2024}=3,\ w_{2025}=4,\ w_{2026}=5$ — giving more recent seasons greater influence.
 
-| Phase | Overs | Batting metric | Bowling metric | Min balls (bat/bowl) |
+| Phase | Overs | Batting metric | Bowling composite | Min balls (bat/bowl) |
 |---|---|---|---|---|
-| Powerplay | 1–6 | Strike Rate | Economy | 30 / 12 |
-| Middle | 7–15 | Strike Rate | Economy | 20 / 18 |
-| Death | 16–20 | Strike Rate | Economy | 15 / 12 |
+| Powerplay | 1–6 | SR, Runs, Avg | 0.5×Phase Wkts + 0.5×inv(Phase Econ) | 30 / 24 |
+| Middle | 7–15 | SR, Runs, Avg | 0.5×Phase Wkts + 0.5×inv(Phase Econ) | 20 / 30 |
+| Death | 16–20 | SR, Runs, Avg | 0.5×Phase Wkts + 0.5×inv(Phase Econ) | 15 / 24 |
 
-The `Phase_Score` is the average of all available phase norms (batting SR: higher = better; bowling economy: lower = better, inverted). It is blended into `Fantasy_Score` at a **0.5× weight** — it nudges but does not dominate the core stats-based score.
+The `Phase_Score` is the average of all available phase norms and is blended into `Fantasy_Score` at a **0.5× weight** — it nudges but does not dominate the core stats-based score.
 
 **Specialist tags** (`pp_bat_specialist`, `death_bat_specialist`, `pp_bowl_specialist`, `death_bowl_specialist`) are assigned to players in the **top/bottom quartile** of their respective phase metric.
 
@@ -84,18 +86,14 @@ Subject to the following constraints:
 | **Binary selection** | $x_i \in \{0, 1\}$ | $x_i = 1$ if player $i$ is drafted, $0$ otherwise |
 | **Squad size** | $\sum_{i=1}^{n} x_i = 11$ | Exactly 11 players in the starting XI |
 | **Budget cap** | $\sum_{i=1}^{n} x_i \cdot \text{Cost}_i \le \text{Budget}$ | Total expenditure within auction purse |
-| **Overseas limit** | $\sum_{i=1}^{n} x_i \cdot \text{Overseas}_i \le 4$ | Maximum of 4 foreign players |
+| **Overseas limit** | $\sum_{i \in \text{Foreign}} x_i \le 4$ | Maximum of 4 foreign players |
 | **Wicketkeeper** | $\sum_{i \in \text{WK}} x_i \ge 1$ | At least 1 designated wicketkeeper |
 | **Batting depth** | $\sum_{i \in \text{Bat/AllR}} x_i \ge 6$ | Minimum 6 recognized batting options |
 | **Bowling depth** | $\sum_{i \in \text{Bowl/AllR}} x_i \ge 5$ | Minimum 5 recognized bowling options |
-| **PP Bat Specialist** *(optional)* | $\sum_{i \in \text{PP Bat}} x_i \ge 1$ | At least 1 top-quartile Powerplay (overs 1–6) batter by SR |
-| **Death Bat Specialist** *(optional)* | $\sum_{i \in \text{Death Bat}} x_i \ge 1$ | At least 1 top-quartile Death Overs (16–20) batter by SR |
-| **PP Bowl Specialist** *(optional)* | $\sum_{i \in \text{PP Bowl}} x_i \ge 1$ | At least 1 bottom-quartile Powerplay bowler by economy |
-| **Death Bowl Specialist** *(optional)* | $\sum_{i \in \text{Death Bowl}} x_i \ge 1$ | At least 1 bottom-quartile Death Overs bowler by economy |
-| **PP Bat Specialist** *(optional)* | $\sum_{i \in \text{PP Bat}} x_i \ge 1$ | At least 1 Powerplay batting specialist (top-quartile overs 1–6 SR) |
-| **Death Bat Specialist** *(optional)* | $\sum_{i \in \text{Death Bat}} x_i \ge 1$ | At least 1 Death Overs batting specialist (top-quartile overs 16–20 SR) |
-| **PP Bowl Specialist** *(optional)* | $\sum_{i \in \text{PP Bowl}} x_i \ge 1$ | At least 1 Powerplay bowling specialist (bottom-quartile overs 1–6 economy) |
-| **Death Bowl Specialist** *(optional)* | $\sum_{i \in \text{Death Bowl}} x_i \ge 1$ | At least 1 Death Overs bowling specialist (bottom-quartile overs 16–20 economy) |
+| **PP Bat Specialist** *(optional)* | $\sum_{i \in \text{PP Bat}} x_i \ge 1$ | At least 1 top-quartile Powerplay batter by SR |
+| **Death Bat Specialist** *(optional)* | $\sum_{i \in \text{Death Bat}} x_i \ge 1$ | At least 1 top-quartile Death Overs batter by SR |
+| **PP Bowl Specialist** *(optional)* | $\sum_{i \in \text{PP Bowl}} x_i \ge 1$ | At least 1 top-quartile Powerplay bowler by economy |
+| **Death Bowl Specialist** *(optional)* | $\sum_{i \in \text{Death Bowl}} x_i \ge 1$ | At least 1 top-quartile Death Overs bowler by economy |
 
 ---
 
@@ -109,7 +107,8 @@ Subject to the following constraints:
 | Web Dashboard | Streamlit |
 | Visualizations | Plotly Express, Plotly Graph Objects |
 | Ball-by-ball Data | RR Hackathon Dataset (IPL 2022–2026) |
-| Testing | pytest — 38 unit tests |
+| Pricing | IPL 2026 Auction (retentions + auction, Dec 2025) |
+| Testing | pytest — 53 unit tests |
 
 ---
 
@@ -119,7 +118,10 @@ Subject to the following constraints:
 IPL-Moneyball/
 ├── data/
 │   ├── raw/
-│   │   └── IPL_Stats.csv                      # 2024–2025 IPL player stats & auction prices
+│   │   ├── IPL_Stats.csv                      # Legacy player stats (fallback only)
+│   │   └── IPL_2026_prices.csv                # IPL 2026 retention & auction prices (90 players)
+│   ├── processed/
+│   │   └── bbb_derived_stats.csv              # 381 players — BBB-derived, recency-weighted
 │   └── RR-Hackathon-Data/
 │       ├── ball_by_ball.csv                   # 200,999 ball-by-ball deliveries (all formats)
 │       ├── matches.csv                        # Match metadata with competition IDs
@@ -128,11 +130,12 @@ IPL-Moneyball/
 │       ├── playing_eleven.csv
 │       └── competition_team_player_mapping.csv
 ├── src/
+│   ├── bbb_data_generator.py                  # Generates bbb_derived_stats.csv from BBB data
 │   ├── data_cleaning.py                       # Data loading, dedup, phase stats merge
 │   ├── optimizer.py                           # Fantasy scoring, Phase Score, LP model, frontier
 │   └── phase_stats.py                         # Phase specialist stats from ball-by-ball data
 ├── tests/
-│   └── test_optimizer.py                      # 38 unit tests across 5 test classes
+│   └── test_optimizer.py                      # 53 unit tests across 6 test classes
 ├── dashboard.py                               # Streamlit multi-tab frontend
 ├── requirements.txt
 ├── packages.txt                               # System packages for Streamlit Cloud (coinor-cbc)
@@ -164,13 +167,19 @@ pip install -r requirements.txt
 > ```
 > The app auto-detects and prefers the system CBC binary.
 
-### 3. Launch the dashboard
+### 3. (Optional) Regenerate the player pool from BBB data
+
+```bash
+python -m src.bbb_data_generator
+```
+
+### 4. Launch the dashboard
 
 ```bash
 streamlit run dashboard.py
 ```
 
-### 4. Run the test suite
+### 5. Run the test suite
 
 ```bash
 pytest tests/ -v
@@ -190,22 +199,22 @@ The Moneyball view — an interactive scatter plot of every player's price vs. f
 - **Role-level value distribution** — box plot showing which positions have the most market inefficiency
 
 ### 🔍 Player Scout
-Full searchable, filterable player database sorted by Value Score. Filter by role, nationality, and minimum fantasy score. Heatmap coloring on key metrics for quick comparison.
+Full searchable, filterable player database sorted by Value Score. Filter by role, nationality, and minimum fantasy score. Heatmap coloring on key metrics for quick comparison. Shows `Price Year` (2026/estimate), `Last IPL` season, and `Seasons` played.
 
-### ⚡ Phase Analysis *(New)*
+### ⚡ Phase Analysis
 Ball-by-ball specialist analysis using **IPL 2022–2026 data** with recency-weighted multi-year averages:
 - **Phase selector** — switch between Powerplay, Middle Overs, and Death Overs views
-- **Batting specialists** — ranked by phase-specific strike rate with minimum ball thresholds
-- **Bowling specialists** — ranked by phase-specific economy (lower = better)
+- **Batting specialists** — ranked by phase-specific Strike Rate, Runs, and Average
+- **Bowling specialists** — ranked by phase-specific Economy + Wickets composite
 - **Phase heatmap** — multi-phase comparison grid for the top 30 players by Fantasy Score
-- **All-Phase summary table** — every player's PP / Mid / Death SR and economy in one view
+- **All-Phase summary table** — every player's PP / Mid / Death metrics in one view
 
 ---
 
 ## 🧪 Test Coverage
 
 ```
-tests/test_optimizer.py  —  42 tests
+tests/test_optimizer.py  —  53 tests
 
 TestCalculateFantasy          (10)  score columns, non-negative, strategy weights, normalisation
 TestOptimizeTeam               (9)  11 players, budget, strict/flexible modes, inclusions/exclusions
@@ -213,6 +222,8 @@ TestGetEfficientFrontier       (5)  non-empty, subset of pool, sorted, no domina
 TestLoadPhaseStats             (8)  DataFrame structure, Pakistani filter, SR/economy validity, no dupes
 TestCalculateFantasyWithPhase  (6)  Phase_Score column, specialist tags, non-negative, no NaN
 TestPhaseSpecialistConstraints (4)  LP constraints for PP bat/bowl, Death bowl, all 4 together
+TestBBBDataGenerator          (11)  returns DataFrame, 381 players, 2026 prices, recency weights,
+                                    alias map, role inference, no wkts_per_over columns
 ```
 
 ---

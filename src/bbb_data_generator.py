@@ -58,9 +58,10 @@ PACE_TYPES = {
 MIN_BAT_BALLS  = 30   # at least 30 legal balls faced across career
 MIN_BOWL_BALLS = 60   # at least 60 deliveries bowled across career (10 overs)
 
-_DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "RR-Hackathon-Data"
-_OLD_CSV  = Path(__file__).resolve().parent.parent / "data" / "raw" / "IPL_Stats.csv"
-_OUT_CSV  = Path(__file__).resolve().parent.parent / "data" / "processed" / "bbb_derived_stats.csv"
+_DATA_DIR    = Path(__file__).resolve().parent.parent / "data" / "RR-Hackathon-Data"
+_OLD_CSV     = Path(__file__).resolve().parent.parent / "data" / "raw" / "IPL_Stats.csv"
+_PRICE_2026  = Path(__file__).resolve().parent.parent / "data" / "raw" / "IPL_2026_prices.csv"
+_OUT_CSV     = Path(__file__).resolve().parent.parent / "data" / "processed" / "bbb_derived_stats.csv"
 
 # Name aliases: BBB full names → IPL_Stats.csv names (for cost / Is_Foreign lookup)
 BBB_TO_OLD_NAME: dict = {
@@ -309,39 +310,60 @@ def generate_bbb_stats(
     merged["last_season"]      = merged[["last_bat_season", "last_bowl_season"]].max(axis=1)
 
     # -----------------------------------------------------------------------
-    # Cost_Cr, Is_Foreign, and price_year from legacy data
-    # Always use the most recent (latest IPL auction) price for each player.
-    # Fallback order:
-    #   1. Direct name match in IPL_Stats.csv (sorted by Year desc → latest auction)
-    #   2. Alias map (BBB_TO_OLD_NAME) for known name mismatches
-    #   3. Role+Subrole-based median of known prices (better than global median
-    #      — a WK batter commands more than a tail-end pacer)
+    # Cost_Cr, Is_Foreign, and price_year
+    # Priority:
+    #   1. IPL 2026 prices (data/raw/IPL_2026_prices.csv) — retentions + auction
+    #   2. Direct name match in IPL_Stats.csv (legacy, sorted by Year desc)
+    #   3. Alias map (BBB_TO_OLD_NAME) for known name mismatches
+    #   4. Role+Subrole-based median of known prices
     # -----------------------------------------------------------------------
+    # Build 2026 price lookup (Player Name → {Cost_Cr, Is_Foreign})
+    price_2026_map: dict = {}
+    if _PRICE_2026.exists():
+        p26 = pd.read_csv(_PRICE_2026)
+        p26 = p26.drop_duplicates("Player Name", keep="first")
+        for _, r in p26.iterrows():
+            price_2026_map[r["Player Name"]] = {
+                "Cost_Cr": float(r["Cost_Cr"]),
+                "Is_Foreign": int(r.get("Is_Foreign", 0)),
+                "price_year": "2026",
+            }
+
+    # Build legacy price lookup from IPL_Stats.csv
+    legacy_meta: dict = {}
     if old_csv.exists():
-        old = pd.read_csv(old_csv)
-        # Latest auction price per player (2025 mega-auction prices where available)
-        old_latest = old.sort_values("Year", ascending=False).drop_duplicates("Player Name", keep="first")
-        old_meta = old_latest.set_index("Player Name")[["Cost_Cr", "Is_Foreign", "Year"]]
+        old_df = pd.read_csv(old_csv)
+        old_df = old_df.sort_values("Year", ascending=False).drop_duplicates("Player Name", keep="first")
+        for _, r in old_df.iterrows():
+            if r["Player Name"] not in legacy_meta:
+                legacy_meta[r["Player Name"]] = {
+                    "Cost_Cr": float(r["Cost_Cr"]) if pd.notna(r["Cost_Cr"]) else np.nan,
+                    "Is_Foreign": int(r.get("Is_Foreign", 0)),
+                    "price_year": str(int(r["Year"])) if pd.notna(r.get("Year")) else "legacy",
+                }
 
-        def _lookup_meta(bbb_name: str, col: str):
-            """Lookup with direct match first, alias fallback second."""
-            if bbb_name in old_meta.index:
-                return old_meta.loc[bbb_name, col]
-            alias = BBB_TO_OLD_NAME.get(bbb_name)
-            if alias and alias in old_meta.index:
-                return old_meta.loc[alias, col]
-            return np.nan
+    def _get_price(bbb_name: str) -> dict:
+        """Lookup in 2026 → legacy → alias → empty."""
+        # 1. Direct 2026 hit
+        if bbb_name in price_2026_map:
+            return price_2026_map[bbb_name]
+        # 2. Alias → 2026
+        alias = BBB_TO_OLD_NAME.get(bbb_name)
+        if alias and alias in price_2026_map:
+            return price_2026_map[alias]
+        # 3. Direct legacy hit
+        if bbb_name in legacy_meta:
+            return legacy_meta[bbb_name]
+        # 4. Alias → legacy
+        if alias and alias in legacy_meta:
+            return legacy_meta[alias]
+        return {}
 
-        merged["Cost_Cr"]    = merged["Player Name"].apply(lambda n: _lookup_meta(n, "Cost_Cr"))
-        merged["Is_Foreign"] = merged["Player Name"].apply(lambda n: _lookup_meta(n, "Is_Foreign"))
-        merged["price_year"] = merged["Player Name"].apply(lambda n: _lookup_meta(n, "Year"))
-    else:
-        merged["Cost_Cr"]    = np.nan
-        merged["Is_Foreign"] = 0
-        merged["price_year"] = np.nan
+    merged["Cost_Cr"]    = merged["Player Name"].apply(lambda n: _get_price(n).get("Cost_Cr",    np.nan))
+    merged["Is_Foreign"] = merged["Player Name"].apply(lambda n: _get_price(n).get("Is_Foreign", 0))
+    merged["price_year"] = merged["Player Name"].apply(lambda n: _get_price(n).get("price_year", None))
 
-    # Role+Subrole-based median fallback for players not in old CSV
-    # (much more accurate than a single global median)
+    # Role+Subrole-based median fallback for players with no known price
     role_subrole_medians = (
         merged[merged["Cost_Cr"].notna()]
         .groupby(["Role", "Subrole"])["Cost_Cr"]
