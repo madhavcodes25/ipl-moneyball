@@ -187,9 +187,15 @@ $$
 $$
 
 #### Small-Sample Shrinkage Penalties
-To guard against small-sample noise (e.g. a batter who faced 2 balls and hit a six having a 300.0 SR):
-- If $\text{Runs} < 30 \implies \text{norm}(\text{SR}) \leftarrow \text{norm}(\text{SR}) \times 0.20$ and $\text{norm}(\text{Avg}) \leftarrow \text{norm}(\text{Avg}) \times 0.20$
-- If $\text{Wickets} < 2 \implies \text{norm}_{\text{inv}}(\text{Econ}) \leftarrow \text{norm}_{\text{inv}}(\text{Econ}) \times 0.20$ and $\text{norm}_{\text{inv}}(\text{BowlAvg}) \leftarrow \text{norm}_{\text{inv}}(\text{BowlAvg}) \times 0.20$
+To guard against small-sample noise (e.g. a batter who faced 2 balls and hit a six having an inflated 300.0 SR):
+- **Batters with $\text{Runs} < 30$** (penalize Strike Rate and Average by 80%):
+  $$
+  \text{norm}(\text{SR}) \leftarrow \text{norm}(\text{SR}) \times 0.20, \quad \text{norm}(\text{Avg}) \leftarrow \text{norm}(\text{Avg}) \times 0.20
+  $$
+- **Bowlers with $\text{Wickets} < 2$** (penalize Economy and Bowling Average by 80%):
+  $$
+  \text{norm}_{\text{inv}}(\text{Econ}) \leftarrow \text{norm}_{\text{inv}}(\text{Econ}) \times 0.20, \quad \text{norm}_{\text{inv}}(\text{BowlAvg}) \leftarrow \text{norm}_{\text{inv}}(\text{BowlAvg}) \times 0.20
+  $$
 
 ---
 
