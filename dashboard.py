@@ -248,6 +248,7 @@ def render_market_analysis_tab(scored_data: pd.DataFrame):
         hover_data={
             "Cost_Cr": ":.2f",
             "Fantasy_Score": ":.3f",
+            "Phase_Score": ":.3f",
             "Value_Score": ":.3f",
             "Role": True,
             "Subrole": True,
@@ -255,6 +256,7 @@ def render_market_analysis_tab(scored_data: pd.DataFrame):
         labels={
             "Cost_Cr": "Auction Price (₹ Cr)",
             "Fantasy_Score": "Fantasy Score",
+            "Phase_Score": "Phase Score",
             "Value_Score": "Value Score (Fantasy/₹Cr)",
         },
         title="Player Market Map: Price vs. Fantasy Performance",
@@ -393,6 +395,7 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
             "Sort By",
             options=[
                 "Fantasy Score (Highest First)",
+                "Phase Score (Highest First)",
                 "Value Score (Highest First)",
                 "Price (Lowest First)",
                 "Price (Highest First)",
@@ -424,6 +427,7 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
     # Map user sort selection to column + ascending
     sort_column_map = {
         "Fantasy Score (Highest First)": ("Fantasy_Score", False),
+        "Phase Score (Highest First)": ("Phase_Score", False),
         "Value Score (Highest First)": ("Value_Score", False),
         "Price (Lowest First)": ("Cost_Cr", True),
         "Price (Highest First)": ("Cost_Cr", False),
@@ -458,7 +462,7 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
     if "Price (Cr)" in scout_display.columns:
         scout_display["Price (Cr)"] = scout_display["Price (Cr)"].round(2)
     if "Phase Score" in scout_display.columns:
-        scout_display["Phase Score"] = scout_display["Phase Score"].round(3)
+        scout_display["Phase Score"] = scout_display["Phase Score"].fillna(0.0).round(3)
     if "Fantasy Score" in scout_display.columns:
         scout_display["Fantasy Score"] = scout_display["Fantasy Score"].round(2)
     if "Value Score" in scout_display.columns:
@@ -663,6 +667,7 @@ def render_optimizer_tab(params: dict, scored_data: pd.DataFrame, raw_data: pd.D
     display_squad = optimal_squad.rename(columns={
         "Cost_Cr": "Auction Price (Cr)",
         "Fantasy_Score": "Fantasy Points",
+        "Phase_Score": "Phase Score",
         "Value_Score": "Value Score",
         "Is_Foreign": "Overseas Player",
         "price_year": "Price Year",
@@ -695,8 +700,8 @@ def render_optimizer_tab(params: dict, scored_data: pd.DataFrame, raw_data: pd.D
     display_squad["Auction Price (Cr)"] = display_squad["Auction Price (Cr)"].round(2)
     display_squad["Fantasy Points"] = display_squad["Fantasy Points"].round(2)
     display_squad["Value Score"] = display_squad["Value Score"].round(3)
-    if "Phase_Score" in display_squad.columns:
-        display_squad["Phase_Score"] = display_squad["Phase_Score"].round(3)
+    if "Phase Score" in display_squad.columns:
+        display_squad["Phase Score"] = display_squad["Phase Score"].fillna(0.0).round(3)
 
     squad_column_config = {
         "Auction Price (Cr)": st.column_config.NumberColumn(
@@ -707,6 +712,11 @@ def render_optimizer_tab(params: dict, scored_data: pd.DataFrame, raw_data: pd.D
         "Fantasy Points": st.column_config.NumberColumn(
             "Fantasy Points",
             format="%.2f",
+        ),
+        "Phase Score": st.column_config.NumberColumn(
+            "Phase Score",
+            format="%.3f",
+            help="Arithmetic mean of normalized PP, Middle, and Death metrics (0-1). Truncated to 3 decimals.",
         ),
         "Value Score": st.column_config.NumberColumn(
             "Value Score",
