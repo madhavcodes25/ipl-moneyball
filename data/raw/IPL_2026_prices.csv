@@ -5,13 +5,13 @@ Cameron Green,25.2,Auction,Kolkata Knight Riders,1
 Heinrich Klaasen,23.0,Retention,Sunrisers Hyderabad,1
 Nicholas Pooran,21.0,Retention,Lucknow Super Giants,1
 Virat Kohli,21.0,Retention,Royal Challengers Bengaluru,0
-Rashid Khan,18.0,Retention,Gujarat Titans,1
-Matheesha Pathirana,18.0,Auction,Kolkata Knight Riders,1
-Jasprit Bumrah,18.0,Retention,Mumbai Indians,0
 Yuzvendra Chahal,18.0,Retention,Punjab Kings,0
-Pat Cummins,18.0,Retention,Sunrisers Hyderabad,1
-Yashasvi Jaiswal,18.0,2025-27 Contract,IPL Franchise,0
 Patrick Cummins,18.0,Retention,Sunrisers Hyderabad,1
+Yashasvi Jaiswal,18.0,2025-27 Contract,IPL Franchise,0
+Pat Cummins,18.0,Retention,Sunrisers Hyderabad,1
+Jasprit Bumrah,18.0,Retention,Mumbai Indians,0
+Matheesha Pathirana,18.0,Auction,Kolkata Knight Riders,1
+Rashid Khan,18.0,Retention,Gujarat Titans,1
 Axar Patel,16.5,Retention,Delhi Capitals,0
 Shubman Gill,16.5,Retention,Gujarat Titans,0
 Suryakumar Yadav,16.35,Retention,Mumbai Indians,0
@@ -21,25 +21,25 @@ Rohit Sharma,16.3,Retention,Mumbai Indians,0
 Jos Buttler,15.75,Retention,Gujarat Titans,1
 Prashant Veer,14.2,Auction,Chennai Super Kings,0
 Kartik Sharma,14.2,Auction,Chennai Super Kings,0
-Tilak Varma,14.0,Retention,Mumbai Indians,0
-Dhruv Jurel,14.0,Retention,Rajasthan Royals,0
-K L Rahul,14.0,Retention,Delhi Capitals,0
-Ravindra Jadeja,14.0,Trade,Rajasthan Royals,0
-Namboori Tilak Varma,14.0,Retention,Mumbai Indians,0
-KL Rahul,14.0,Retention,Delhi Capitals,0
 Travis Head,14.0,Retention,Sunrisers Hyderabad,1
-Arshdeep Singh,14.0,Retention,Punjab Kings,0
-Abhishek Sharma,14.0,Retention,Sunrisers Hyderabad,0
-Ruturaj Gaikwad,14.0,Retention,Chennai Super Kings,0
-Sanju Samson,14.0,Trade,Chennai Super Kings,0
-Riyan Parag,14.0,2025-27 Contract,IPL Franchise,0
 Lokesh Rahul,14.0,Retention,Delhi Capitals,0
+Riyan Parag,14.0,2025-27 Contract,IPL Franchise,0
+Sanju Samson,14.0,Trade,Chennai Super Kings,0
+Ruturaj Gaikwad,14.0,Retention,Chennai Super Kings,0
+Abhishek Sharma,14.0,Retention,Sunrisers Hyderabad,0
+Arshdeep Singh,14.0,Retention,Punjab Kings,0
+KL Rahul,14.0,Retention,Delhi Capitals,0
+Namboori Tilak Varma,14.0,Retention,Mumbai Indians,0
+Ravindra Jadeja,14.0,Trade,Rajasthan Royals,0
+K L Rahul,14.0,Retention,Delhi Capitals,0
+Dhruv Jurel,14.0,Retention,Rajasthan Royals,0
+Tilak Varma,14.0,Retention,Mumbai Indians,0
 Kuldeep Yadav,13.25,Retention,Delhi Capitals,0
 Rinku Singh,13.0,Retention,Kolkata Knight Riders,0
 Liam Livingstone,13.0,Auction,Sunrisers Hyderabad,1
-Trent Boult,12.5,2025-27 Contract,IPL Franchise,1
 Josh Hazlewood,12.5,2025-27 Contract,IPL Franchise,1
 Jofra Archer,12.5,2025-27 Contract,IPL Franchise,1
+Trent Boult,12.5,2025-27 Contract,IPL Franchise,1
 Mohammed Siraj,12.25,2025-27 Contract,IPL Franchise,0
 Sunil Narine,12.0,Retention,Kolkata Knight Riders,1
 Andre Russell,12.0,Retention,Kolkata Knight Riders,1
@@ -49,27 +49,28 @@ Harshal Patel,11.75,2025-27 Contract,IPL Franchise,0
 Mitchell Starc,11.75,2025-27 Contract,IPL Franchise,1
 Phil Salt,11.5,2025-27 Contract,IPL Franchise,1
 Ishan Kishan,11.25,Retention,Sunrisers Hyderabad,0
-Rajat Patidar,11.0,2025-27 Contract,IPL Franchise,0
-Jitesh Sharma,11.0,2025-27 Contract,IPL Franchise,0
 Glenn Maxwell,11.0,Retention,Royal Challengers Bengaluru,1
 Shimron Hetmyer,11.0,2025-27 Contract,IPL Franchise,1
 Mayank Yadav,11.0,2025-27 Contract,IPL Franchise,0
+Jitesh Sharma,11.0,2025-27 Contract,IPL Franchise,0
+Rajat Patidar,11.0,2025-27 Contract,IPL Franchise,0
 T Natarajan,10.75,Auction,Delhi Capitals,0
 Kagiso Rabada,10.75,2025-27 Contract,IPL Franchise,1
 Bhuvneshwar Kumar,10.75,Retention,Royal Challengers Bengaluru,0
 Mohammed Shami,10.0,Retention,Sunrisers Hyderabad,0
 Marcus Stoinis,10.0,2025-27 Contract,IPL Franchise,1
-Spencer Johnson,10.0,2025-27 Contract,IPL Franchise,1
 Mohammad Shami,10.0,2025-27 Contract,IPL Franchise,0
 Noor Ahmad,10.0,2025-27 Contract,IPL Franchise,1
 Tristan Stubbs,10.0,2025-27 Contract,IPL Franchise,1
+Spencer Johnson,10.0,2025-27 Contract,IPL Franchise,1
 Ravichandran Ashwin,9.75,2025-27 Contract,IPL Franchise,0
 Prasidh Krishna,9.5,2025-27 Contract,IPL Franchise,0
 Deepak Chahar,9.25,Retention,Mumbai Indians,0
 Mustafizur Rahman,9.2,Auction,Kolkata Knight Riders,1
-Jake McGurk,9.0,Retention,Delhi Capitals,1
-Rahul Tewatia,9.0,Retention,Gujarat Titans,0
 Jake Fraser-McGurk,9.0,Retention,Delhi Capitals,1
+Jake Fraser-Mcgurk,9.0,Retention,Delhi Capitals,1
+Rahul Tewatia,9.0,Retention,Gujarat Titans,0
+Jake McGurk,9.0,Retention,Delhi Capitals,1
 Josh Inglis,8.6,Auction,Lucknow Super Giants,1
 Sai Sudharsan,8.5,Retention,Gujarat Titans,0
 Auqib Nabi,8.4,Auction,Delhi Capitals,0
@@ -78,17 +79,18 @@ Mukesh Kumar,8.0,2025-27 Contract,IPL Franchise,0
 Akash Deep,8.0,Retention,Royal Challengers Bengaluru,0
 Devdutt Padikkal,7.75,2025-27 Contract,IPL Franchise,0
 Ravi Bishnoi,7.2,Auction,Rajasthan Royals,0
-Jason Holder,7.0,Auction,Gujarat Titans,1
-Venkatesh Iyer,7.0,Auction,Royal Challengers Bengaluru,0
 Marco Jansen,7.0,2025-27 Contract,IPL Franchise,1
-Jonny Bairstow,6.75,2025-27 Contract,IPL Franchise,1
+Venkatesh Iyer,7.0,Auction,Royal Challengers Bengaluru,0
+Jason Holder,7.0,Auction,Gujarat Titans,1
 Quinton De Kock,6.75,2025-27 Contract,IPL Franchise,1
+Jonny Bairstow,6.75,2025-27 Contract,IPL Franchise,1
 Mitchell Marsh,6.5,Retention,Delhi Capitals,1
+Tushar Deshpande,6.5,Auction,Rajasthan Royals,0
 Devon Conway,6.25,2025-27 Contract,IPL Franchise,1
-Rasikh Salam,6.0,Auction,Royal Challengers Bengaluru,0
-Rasikh Dar,6.0,2025-27 Contract,IPL Franchise,0
 Nitish Kumar Reddy,6.0,Retention,Sunrisers Hyderabad,0
 Nitish Reddy,6.0,Retention,Sunrisers Hyderabad,0
+Rasikh Salam,6.0,Auction,Royal Challengers Bengaluru,0
+Rasikh Dar,6.0,2025-27 Contract,IPL Franchise,0
 Shubham Dubey,5.8,2025-27 Contract,IPL Franchise,0
 Krunal Pandya,5.75,Retention,Royal Challengers Bengaluru,0
 Shashank Singh,5.5,2025-27 Contract,IPL Franchise,0
@@ -102,200 +104,198 @@ Yash Dayal,5.0,Retention,Royal Challengers Bengaluru,0
 Allah Ghazanfar,4.8,Auction,Mumbai Indians,1
 Nuwan Thushara,4.8,2025-27 Contract,IPL Franchise,1
 Dilshan Madushanka,4.6,Auction,Mumbai Indians,1
-Ben Dwarshuis,4.4,Auction,Punjab Kings,1
 Rovman Powell,4.4,Retention,Delhi Capitals,1
-Nitish Rana,4.2,2025-27 Contract,IPL Franchise,0
+Ben Dwarshuis,4.4,Auction,Punjab Kings,1
 Abdul Samad,4.2,2025-27 Contract,IPL Franchise,0
-Nehal Wadhera,4.2,2025-27 Contract,IPL Franchise,0
+Nitish Rana,4.2,2025-27 Contract,IPL Franchise,0
 Mohit Sharma,4.2,Retention,Gujarat Titans,0
+Nehal Wadhera,4.2,2025-27 Contract,IPL Franchise,0
 Ayush Badoni,4.0,2025-27 Contract,IPL Franchise,0
 Sandeep Sharma,4.0,2025-27 Contract,IPL Franchise,0
 Shahrukh Khan,4.0,Retention,Gujarat Titans,0
 Mohsin Khan,4.0,Retention,Lucknow Super Giants,0
 M Shahrukh Khan,4.0,Retention,Gujarat Titans,0
-Abishek Porel,4.0,2025-27 Contract,IPL Franchise,0
 Harshit Rana,4.0,2025-27 Contract,IPL Franchise,0
 Ramandeep Singh,4.0,Retention,Kolkata Knight Riders,0
 Prabhsimran Singh,4.0,Retention,Punjab Kings,0
 Mahendra Singh Dhoni,4.0,Retention,Chennai Super Kings,0
 Pathum Nissanka,4.0,Auction,Delhi Capitals,1
 MS Dhoni,4.0,Retention,Chennai Super Kings,0
+Abishek Porel,4.0,2025-27 Contract,IPL Franchise,0
 Priyansh Arya,3.8,2025-27 Contract,IPL Franchise,0
-Harpreet Brar,3.8,2025-27 Contract,IPL Franchise,0
 Ashutosh Sharma,3.8,2025-27 Contract,IPL Franchise,0
+Harpreet Brar,3.8,2025-27 Contract,IPL Franchise,0
 Robin Minz,3.6,2025-27 Contract,IPL Franchise,0
-Varun Chakravarthy,3.5,Retention,Kolkata Knight Riders,0
 Nandre Burger,3.5,Retention,Rajasthan Royals,1
+Varun Chakravarthy,3.5,Retention,Kolkata Knight Riders,0
 Anshul Kamboj,3.4,2025-27 Contract,IPL Franchise,0
 Abhinav Manohar,3.2,2025-27 Contract,IPL Franchise,0
 Washington Sundar,3.2,2025-27 Contract,IPL Franchise,0
-Tejasvi Dahiya,3.0,Auction,Kolkata Knight Riders,0
-Tim David,3.0,2025-27 Contract,IPL Franchise,1
-Angkrish Raghuvanshi,3.0,2025-27 Contract,IPL Franchise,0
 William O Rourke,3.0,2025-27 Contract,IPL Franchise,1
 Jack Edwards,3.0,Auction,Sunrisers Hyderabad,1
+Angkrish Raghuvanshi,3.0,2025-27 Contract,IPL Franchise,0
+Tim David,3.0,2025-27 Contract,IPL Franchise,1
+Tejasvi Dahiya,3.0,Auction,Kolkata Knight Riders,0
+Jacob Bethell,2.6,Auction,Royal Challengers Bengaluru,1
 Mukesh Choudhary,2.6,Auction,Lucknow Super Giants,0
 Mukul Choudhary,2.6,Auction,Lucknow Super Giants,0
 Adam Zampa,2.4,Retention,Royal Challengers Bengaluru,1
 Sam Curran,2.4,Auction,Punjab Kings,1
 Khaleel Ahmed,2.4,Retention,Gujarat Titans,0
 M Siddharth,2.4,2025-27 Contract,IPL Franchise,0
-Dewald Brevis,2.2,2025-27 Contract,IPL Franchise,1
+Shahbaz Ahmed,2.4,Auction,Lucknow Super Giants,0
 Akshat Raghuwanshi,2.2,Auction,Lucknow Super Giants,0
 Gurjapneet Singh,2.2,Auction,Chennai Super Kings,0
-Faf du Plessis,2.0,Retention,Delhi Capitals,1
-FazalHaq Farooqi,2.0,Auction,Rajasthan Royals,1
+Dewald Brevis,2.2,2025-27 Contract,IPL Franchise,1
+Mitchell Santner,2.0,2025-27 Contract,IPL Franchise,1
+Rachin Ravindra,2.0,Auction,Kolkata Knight Riders,1
+Fazalhaq Farooqi,2.0,2025-27 Contract,IPL Franchise,1
+Faf Du Plessis,2.0,Retention,Delhi Capitals,1
+Rahmanullah Gurbaz,2.0,2025-27 Contract,IPL Franchise,1
+Mujeeb-Ur-Rahman,2.0,2025-27 Contract,IPL Franchise,1
+Moeen Ali,2.0,2025-27 Contract,IPL Franchise,1
+David Miller,2.0,Auction,Delhi Capitals,1
+Kyle Jamieson,2.0,Auction,Delhi Capitals,1
+Lockie Ferguson,2.0,2025-27 Contract,IPL Franchise,1
+Nathan Ellis,2.0,2025-27 Contract,IPL Franchise,1
+Anrich Nortje,2.0,Auction,Lucknow Super Giants,1
+Lungi Ngidi,2.0,Auction,Delhi Capitals,1
+Sai Kishore,2.0,2025-27 Contract,IPL Franchise,0
+Cooper Connolly,2.0,Auction,Rajasthan Royals,1
 Akeal Hosein,2.0,Auction,Chennai Super Kings,1
 Mujeeb Ur Rahman,2.0,Auction,Kolkata Knight Riders,1
-Glenn Phillips,2.0,Retention,Sunrisers Hyderabad,1
+Aiden Markram,2.0,2025-27 Contract,IPL Franchise,1
+FazalHaq Farooqi,2.0,Auction,Rajasthan Royals,1
 Tom Banton,2.0,Auction,Gujarat Titans,1
-Lungi Ngidi,2.0,Auction,Delhi Capitals,1
-Cooper Connolly,2.0,Auction,Rajasthan Royals,1
+Glenn Phillips,2.0,Retention,Sunrisers Hyderabad,1
 Jacob Duffy,2.0,Auction,Royal Challengers Bengaluru,1
 Finn Allen,2.0,Auction,Kolkata Knight Riders,1
 Wanindu Hasaranga,2.0,Auction,Lucknow Super Giants,1
 Ben Duckett,2.0,Auction,Delhi Capitals,1
 Kieron Pollard,2.0,Auction,Mumbai Indians,1
 Shardul Thakur,2.0,2025-27 Contract,IPL Franchise,0
-Aiden Markram,2.0,2025-27 Contract,IPL Franchise,1
-Sai Kishore,2.0,2025-27 Contract,IPL Franchise,0
-Mitchell Santner,2.0,2025-27 Contract,IPL Franchise,1
-Anrich Nortje,2.0,Auction,Lucknow Super Giants,1
-Nathan Ellis,2.0,2025-27 Contract,IPL Franchise,1
-Lockie Ferguson,2.0,2025-27 Contract,IPL Franchise,1
-Kyle Jamieson,2.0,Auction,Delhi Capitals,1
-David Miller,2.0,Auction,Delhi Capitals,1
-Moeen Ali,2.0,2025-27 Contract,IPL Franchise,1
-Mujeeb-Ur-Rahman,2.0,2025-27 Contract,IPL Franchise,1
-Rahmanullah Gurbaz,2.0,2025-27 Contract,IPL Franchise,1
-Faf Du Plessis,2.0,Retention,Delhi Capitals,1
-Fazalhaq Farooqi,2.0,2025-27 Contract,IPL Franchise,1
-Rachin Ravindra,2.0,Auction,Kolkata Knight Riders,1
+Faf du Plessis,2.0,Retention,Delhi Capitals,1
 Adam Milne,1.9,Retention,Gujarat Titans,1
 Vaibhav Arora,1.8,2025-27 Contract,IPL Franchise,0
 Vyshak Kumar,1.8,Auction,Punjab Kings,0
 Swapnil Singh,1.8,Retention,Rajasthan Royals,0
+Vyshak Vijaykumar,1.8,Auction,Punjab Kings,0
 Deepak Hooda,1.7,2025-27 Contract,IPL Franchise,0
+Richard Gleeson,1.6,Auction,Royal Challengers Bengaluru,1
 Jaydev Unadkat,1.6,2025-27 Contract,IPL Franchise,0
+Salil Arora,1.5,Auction,Sunrisers Hyderabad,0
+Simarjeet Singh,1.5,2025-27 Contract,IPL Franchise,0
+Ajinkya Rahane,1.5,Retention,Kolkata Knight Riders,0
 Tim Seifert,1.5,Auction,Kolkata Knight Riders,1
+Romario Shepherd,1.5,Auction,Royal Challengers Bengaluru,1
 Matthew Short,1.5,Auction,Chennai Super Kings,1
 Kwena Maphaka,1.5,2025-27 Contract,IPL Franchise,1
 Jamie Overton,1.5,2025-27 Contract,IPL Franchise,1
 Sherfane Rutherford,1.5,2025-27 Contract,IPL Franchise,1
-Salil Arora,1.5,Auction,Sunrisers Hyderabad,0
-Simarjeet Singh,1.5,2025-27 Contract,IPL Franchise,0
-Ajinkya Rahane,1.5,Retention,Kolkata Knight Riders,0
 Mohd Arshad Khan,1.3,2025-27 Contract,IPL Franchise,0
 Sediqullah Atal,1.25,2025-27 Contract,IPL Franchise,1
 Matt Henry,1.25,Auction,Lucknow Super Giants,1
 Vijay Shankar,1.2,2025-27 Contract,IPL Franchise,0
 Akash Madhwal,1.2,2025-27 Contract,IPL Franchise,0
-Vaibhav Suryavanshi,1.1,Retention,Rajasthan Royals,0
+Eshan Malinga,1.2,Auction,Sunrisers Hyderabad,1
 Vaibhav Sooryavanshi,1.1,Retention,Rajasthan Royals,0
+Vaibhav Suryavanshi,1.1,Retention,Rajasthan Royals,0
+Lungisani Ngidi,1.0,2025-27 Contract,IPL Franchise,1
+Ryan Rickelton,1.0,Auction,Mumbai Indians,1
+Naman Tiwari,1.0,Auction,Lucknow Super Giants,0
 Quinton de Kock,1.0,Auction,Mumbai Indians,1
 William ORourke,1.0,Retention,Lucknow Super Giants,1
-Naman Tiwari,1.0,Auction,Lucknow Super Giants,0
-Lungisani Ngidi,1.0,2025-27 Contract,IPL Franchise,1
 Sameer Rizvi,0.95,2025-27 Contract,IPL Franchise,0
-Sushant Mishra,0.9,Auction,Rajasthan Royals,0
 Ashok Sharma,0.9,Auction,Gujarat Titans,0
+Sushant Mishra,0.9,Auction,Rajasthan Royals,0
 Xavier Bartlett,0.8,2025-27 Contract,IPL Franchise,1
-Donovan Ferreira,0.75,2025-27 Contract,IPL Franchise,1
-Dushmantha Chameera,0.75,2025-27 Contract,IPL Franchise,1
-Avesh Khan,0.75,Retention,Rajasthan Royals,0
-Reece Topley,0.75,Auction,Royal Challengers Bengaluru,1
-David Payne,0.75,Auction,Gujarat Titans,1
-Shivam Mavi,0.75,Auction,Sunrisers Hyderabad,0
-Luke Wood,0.75,Auction,Gujarat Titans,1
-Jordan Cox,0.75,Auction,Royal Challengers Bengaluru,1
-Sarfaraz Khan,0.75,Auction,Chennai Super Kings,0
+Kamindu Mendis,0.75,Auction,Sunrisers Hyderabad,1
+Matthew Breetzke,0.75,Auction,Lucknow Super Giants,1
+Prithvi Shaw,0.75,Auction,Delhi Capitals,0
 Rahul Tripathi,0.75,Auction,Kolkata Knight Riders,0
 Manish Pandey,0.75,2025-27 Contract,IPL Franchise,0
 Kusal Mendis,0.75,2025-27 Contract,IPL Franchise,1
-Prithvi Shaw,0.75,Auction,Delhi Capitals,0
+David Payne,0.75,Auction,Gujarat Titans,1
+Luke Wood,0.75,Auction,Gujarat Titans,1
+Jordan Cox,0.75,Auction,Royal Challengers Bengaluru,1
+Sarfaraz Khan,0.75,Auction,Chennai Super Kings,0
+Reece Topley,0.75,Auction,Royal Challengers Bengaluru,1
+Avesh Khan,0.75,Retention,Rajasthan Royals,0
+Dushmantha Chameera,0.75,2025-27 Contract,IPL Franchise,1
+Donovan Ferreira,0.75,2025-27 Contract,IPL Franchise,1
+Shivam Mavi,0.75,Auction,Sunrisers Hyderabad,0
 Maheesh Theekshana,0.7,2025-27 Contract,IPL Franchise,1
 Kumar Kushagra,0.65,Auction,Gujarat Titans,0
 Nishant Sindhu,0.6,Retention,Chennai Super Kings,0
 Nishant Kumar Sindhu,0.6,Retention,Chennai Super Kings,0
+Karn Sharma,0.5,2025-27 Contract,IPL Franchise,0
 Azmatullah Omarzai,0.5,2025-27 Contract,IPL Franchise,1
 Vipraj Nigam,0.5,2025-27 Contract,IPL Franchise,0
 Chetan Sakariya,0.5,Auction,Kolkata Knight Riders,0
-Blessing Muzarabani,0.5,Auction,Lucknow Super Giants,1
-Karn Sharma,0.5,2025-27 Contract,IPL Franchise,0
+Ishant Sharma,0.5,2025-27 Contract,IPL Franchise,0
 Dasun Shanaka,0.5,Retention,Gujarat Titans,1
 Karun Nair,0.5,2025-27 Contract,IPL Franchise,0
-Ishant Sharma,0.5,2025-27 Contract,IPL Franchise,0
+Blessing Muzarabani,0.5,Auction,Lucknow Super Giants,1
 Yash Thakur,0.45,2025-27 Contract,IPL Franchise,0
-Anukul Roy,0.4,2025-27 Contract,IPL Franchise,0
 Zeeshan Ansari,0.4,2025-27 Contract,IPL Franchise,0
-Richard Gleeson,0.3,2025-27 Contract,IPL Franchise,1
-Aniket Verma,0.3,2025-27 Contract,IPL Franchise,0
-Vignesh Puthur,0.3,Auction,Rajasthan Royals,0
-Praful Hinge,0.3,Retention,Rajasthan Royals,0
-Vishnu Vinod,0.3,Auction,Punjab Kings,0
-Ashwani Kumar,0.3,2025-27 Contract,IPL Franchise,0
-Akash Singh,0.3,2025-27 Contract,IPL Franchise,0
-Atharva Taide,0.3,Retention,Punjab Kings,0
-Ayush Mhatre,0.3,2025-27 Contract,IPL Franchise,0
-Raghu Sharma,0.3,Retention,Rajasthan Royals,0
-Romario Shepherd,0.3,2025-27 Contract,IPL Franchise,1
-Ryan Rickelton,0.3,Auction,Mumbai Indians,1
-Urvil Patel,0.3,2025-27 Contract,IPL Franchise,0
-Tushar Deshpande,0.3,Auction,Kolkata Knight Riders,0
-Kumar Kartikeya Singh,0.3,Auction,Rajasthan Royals,0
-Suryansh Shedge,0.3,2025-27 Contract,IPL Franchise,0
-Abhinandan Singh,0.3,Retention,Kolkata Knight Riders,0
-Shahbaz Ahmed,0.3,Retention,Royal Challengers Bengaluru,0
-Arjun Tendulkar,0.3,Retention,Mumbai Indians,0
-Manav Suthar,0.3,Auction,Gujarat Titans,0
-Mayank Markande,0.3,Auction,Kolkata Knight Riders,0
-Navdeep Saini,0.3,Auction,Rajasthan Royals,0
-Raj Bawa,0.3,Auction,Delhi Capitals,0
-Kunal Rathore,0.3,Retention,Rajasthan Royals,0
-Digvesh Rathi,0.3,Auction,Lucknow Super Giants,0
-Himmat Singh Deol,0.3,Retention,Delhi Capitals,0
-Prashant Solanki,0.3,Auction,Kolkata Knight Riders,0
-Matthew Breetzke,0.3,2025-27 Contract,IPL Franchise,1
-Vicky Ostwal,0.3,Auction,Royal Challengers Bengaluru,0
-Satvik Deswal,0.3,Auction,Royal Challengers Bengaluru,0
-Shivang Kumar,0.3,Auction,Sunrisers Hyderabad,0
-Himmat Singh,0.3,Retention,Delhi Capitals,0
-Kartik Tyagi,0.3,Auction,Kolkata Knight Riders,0
-Musheer Khan,0.3,2025-27 Contract,IPL Franchise,0
-Madhav Tiwari,0.3,2025-27 Contract,IPL Franchise,0
-Prithviraj Yarra,0.3,Auction,Gujarat Titans,0
-Eshan Malinga,0.3,2025-27 Contract,IPL Franchise,1
+Anukul Roy,0.4,2025-27 Contract,IPL Franchise,0
 Harsh Dubey,0.3,2025-27 Contract,IPL Franchise,0
-Jacob Bethell,0.3,2025-27 Contract,IPL Franchise,1
-Jake Fraser-Mcgurk,0.3,2025-27 Contract,IPL Franchise,1
+Prithviraj Yarra,0.3,Auction,Gujarat Titans,0
+Madhav Tiwari,0.3,2025-27 Contract,IPL Franchise,0
+Prince Yadav,0.3,2025-27 Contract,IPL Franchise,0
 Kulwant Khejroliya,0.3,2025-27 Contract,IPL Franchise,0
-Kamindu Mendis,0.3,2025-27 Contract,IPL Franchise,1
 Vihaan Malhotra,0.3,Auction,Royal Challengers Bengaluru,0
 Sahil Parakh,0.3,Retention,Mumbai Indians,0
-Prince Yadav,0.3,2025-27 Contract,IPL Franchise,0
+Raj Angad Bawa,0.3,2025-27 Contract,IPL Franchise,0
 Mayank Rawat,0.3,Auction,Mumbai Indians,0
 Digvesh Singh,0.3,2025-27 Contract,IPL Franchise,0
 Danish Malewar,0.3,Auction,Mumbai Indians,0
 Aman Rao,0.3,Auction,Rajasthan Royals,0
 Brijesh Sharma,0.3,Auction,Rajasthan Royals,0
-Raj Angad Bawa,0.3,2025-27 Contract,IPL Franchise,0
-Vyshak Vijaykumar,0.3,2025-27 Contract,IPL Franchise,0
+Kartik Tyagi,0.3,Auction,Kolkata Knight Riders,0
 Atharwa Taide,0.3,Retention,Punjab Kings,0
 Corbin Bosch,0.3,2025-27 Contract,IPL Franchise,1
 Vishal Nishad,0.3,Auction,Punjab Kings,0
 Praveen Dubey,0.3,Auction,Punjab Kings,0
 Yash Punja,0.3,Auction,Rajasthan Royals,0
-Ramakrishna Ghosh,0.2,Retention,Kolkata Knight Riders,0
-Shaik Rasheed,0.2,2025-27 Contract,IPL Franchise,0
-Saurabh Dubey,0.2,Retention,Sunrisers Hyderabad,0
-Sakib Hussain,0.2,Retention,Kolkata Knight Riders,0
-Harpreet Bhatia,0.2,Retention,Punjab Kings,0
-Suyash Sharma,0.2,2025-27 Contract,IPL Franchise,0
-Yudhvir Singh,0.2,Retention,Lucknow Super Giants,0
+Musheer Khan,0.3,2025-27 Contract,IPL Franchise,0
+Aniket Verma,0.3,2025-27 Contract,IPL Franchise,0
+Himmat Singh,0.3,Retention,Delhi Capitals,0
+Abhinandan Singh,0.3,Retention,Kolkata Knight Riders,0
+Vignesh Puthur,0.3,Auction,Rajasthan Royals,0
+Praful Hinge,0.3,Retention,Rajasthan Royals,0
+Vishnu Vinod,0.3,Auction,Punjab Kings,0
+Ashwani Kumar,0.3,2025-27 Contract,IPL Franchise,0
+Akash Singh,0.3,2025-27 Contract,IPL Franchise,0
+Shivang Kumar,0.3,Auction,Sunrisers Hyderabad,0
+Ayush Mhatre,0.3,2025-27 Contract,IPL Franchise,0
+Raghu Sharma,0.3,Retention,Rajasthan Royals,0
+Urvil Patel,0.3,2025-27 Contract,IPL Franchise,0
+Kumar Kartikeya Singh,0.3,Auction,Rajasthan Royals,0
+Suryansh Shedge,0.3,2025-27 Contract,IPL Franchise,0
+Atharva Taide,0.3,Retention,Punjab Kings,0
+Arjun Tendulkar,0.3,Retention,Mumbai Indians,0
+Digvesh Rathi,0.3,Auction,Lucknow Super Giants,0
+Manav Suthar,0.3,Auction,Gujarat Titans,0
+Satvik Deswal,0.3,Auction,Royal Challengers Bengaluru,0
+Vicky Ostwal,0.3,Auction,Royal Challengers Bengaluru,0
+Himmat Singh Deol,0.3,Retention,Delhi Capitals,0
+Prashant Solanki,0.3,Auction,Kolkata Knight Riders,0
+Kunal Rathore,0.3,Retention,Rajasthan Royals,0
+Raj Bawa,0.3,Auction,Delhi Capitals,0
+Navdeep Saini,0.3,Auction,Rajasthan Royals,0
+Mayank Markande,0.3,Auction,Kolkata Knight Riders,0
 Kumar Kartikeya,0.2,2025-27 Contract,IPL Franchise,0
-Manoj Bhandage,0.2,2025-27 Contract,IPL Franchise,0
-Krish Bhagat,0.2,Auction,Chennai Super Kings,0
-Arshin Kulkarni,0.2,Retention,Lucknow Super Giants,0
-Arshad Khan,0.2,Retention,Gujarat Titans,0
 Manimaran Siddharth,0.2,Retention,Lucknow Super Giants,0
+Arshad Khan,0.2,Retention,Gujarat Titans,0
+Arshin Kulkarni,0.2,Retention,Lucknow Super Giants,0
+Krish Bhagat,0.2,Auction,Chennai Super Kings,0
+Manoj Bhandage,0.2,2025-27 Contract,IPL Franchise,0
+Shaik Rasheed,0.2,2025-27 Contract,IPL Franchise,0
+Yudhvir Singh,0.2,Retention,Lucknow Super Giants,0
+Suyash Sharma,0.2,2025-27 Contract,IPL Franchise,0
+Harpreet Bhatia,0.2,Retention,Punjab Kings,0
+Sakib Hussain,0.2,Retention,Kolkata Knight Riders,0
+Saurabh Dubey,0.2,Retention,Sunrisers Hyderabad,0
+Ramakrishna Ghosh,0.2,Retention,Kolkata Knight Riders,0
 Harpreet Singh,0.2,Retention,Punjab Kings,0
