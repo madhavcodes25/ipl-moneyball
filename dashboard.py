@@ -416,7 +416,7 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
         "Player Name", "Role", "Subrole", "Cost_Cr", "price_year", "Is_Foreign",
         "last_season", "seasons_played",
         "Batting Runs", "Batting Average", "Batting Strike Rate",
-        "Wickets", "Economy Rate", "Fantasy_Score", "Value_Score",
+        "Wickets", "Economy Rate", "Phase_Score", "Fantasy_Score", "Value_Score",
     ]
     # Only keep columns that actually exist in the dataframe
     display_cols = [c for c in display_cols if c in scout_df.columns]
@@ -445,6 +445,7 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
         "Is_Foreign": "Overseas",
         "last_season": "Last IPL",
         "seasons_played": "Seasons",
+        "Phase_Score": "Phase Score",
         "Fantasy_Score": "Fantasy Score",
         "Value_Score": "Value Score",
         "Batting Runs": "Runs",
@@ -456,6 +457,8 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
     # Format numbers cleanly so they don't display like 16.000000
     if "Price (Cr)" in scout_display.columns:
         scout_display["Price (Cr)"] = scout_display["Price (Cr)"].round(2)
+    if "Phase Score" in scout_display.columns:
+        scout_display["Phase Score"] = scout_display["Phase Score"].round(3)
     if "Fantasy Score" in scout_display.columns:
         scout_display["Fantasy Score"] = scout_display["Fantasy Score"].round(2)
     if "Value Score" in scout_display.columns:
@@ -481,6 +484,8 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
         "Seasons": st.column_config.NumberColumn("Seasons", format="%d",
             help="Number of distinct IPL seasons (2022-2026) the player appeared in."),
         "Fantasy Score": st.column_config.NumberColumn("Fantasy Score", format="%.2f"),
+        "Phase Score": st.column_config.NumberColumn("Phase Score", format="%.3f",
+            help="Arithmetic mean of normalized PP, Middle, and Death metrics (0-1). Truncated to 3 decimals."),
         "Value Score": st.column_config.NumberColumn("Value Score", format="%.3f"),
         "Bat Avg": st.column_config.NumberColumn("Bat Avg", format="%.2f"),
         "SR": st.column_config.NumberColumn("SR", format="%.1f"),

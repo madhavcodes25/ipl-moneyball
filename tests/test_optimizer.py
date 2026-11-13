@@ -392,6 +392,18 @@ class TestCalculateFantasyWithPhase:
         result = calculate_fantasy(pool_with_phase)
         assert not result["Fantasy_Score"].isna().any()
 
+    def test_phase_score_truncated_to_three_decimals(self, pool_with_phase):
+        result = calculate_fantasy(pool_with_phase)
+        # Check that all non-zero Phase_Score values have at most 3 decimal places
+        decimals = result["Phase_Score"].apply(lambda x: len(str(x).split(".")[1]) if "." in str(x) else 0)
+        assert decimals.max() <= 3, f"Phase_Score has more than 3 decimal places: max is {decimals.max()}"
+
+    def test_fantasy_score_independent_of_phase_score(self, minimal_player_pool, pool_with_phase):
+        # Result without phase columns vs result with phase columns should have identical Fantasy_Score
+        res_plain = calculate_fantasy(minimal_player_pool)
+        res_phase = calculate_fantasy(pool_with_phase)
+        np.testing.assert_allclose(res_plain["Fantasy_Score"].values, res_phase["Fantasy_Score"].values, atol=1e-5)
+
 
 # ─────────────────────────────────────────────
 # Phase Specialist Constraint tests

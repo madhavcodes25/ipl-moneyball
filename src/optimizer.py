@@ -5,18 +5,16 @@ from typing import Optional
 
 def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
     """
-    Calculates a composite Fantasy Score for each player based on their historical statistics
-    plus phase-specialist bonuses (Powerplay / Middle / Death) derived from ball-by-ball data.
+    Calculates a composite Fantasy Score for each player based on their career statistics
+    (Batting: Runs, Strike Rate, Average; Bowling: Wickets, Economy Rate, Bowling Average).
 
-    Phase Specialist Bonus
-    ----------------------
-    For players who have sufficient ball-by-ball data, an additional ``Phase_Score``
-    (0–1 normalised) is computed from their phase-specific strike rates and economies.
-    This is blended into the ``Fantasy_Score`` at a 0.5× weight so it nudges — but
-    does not dominate — the core stats-based score.  Specialist role tags are also
-    added as boolean columns:
-    ``pp_bat_specialist``, ``death_bat_specialist``,
-    ``pp_bowl_specialist``, ``death_bowl_specialist``.
+    Phase Specialists & Phase Score
+    -------------------------------
+    Phase-specific composite scores (Powerplay, Middle, Death) and an aggregate ``Phase_Score``
+    are computed for phase ranking in the Phase Analysis tab and for assigning specialist role tags:
+    ``pp_bat_specialist``, ``death_bat_specialist``, ``pp_bowl_specialist``, ``death_bowl_specialist``.
+    Phase score is NOT blended into Fantasy_Score, keeping overall player valuation grounded in
+    robust career output while allowing the LP optimizer to enforce specialist constraints when selected.
 
     Args:
         df (pd.DataFrame): DataFrame containing player statistics.
@@ -146,10 +144,11 @@ def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
     # Phase_Score = average of all 6 composite phases (3 bat + 3 bowl)
     all_composites = list(bat_composite.values()) + list(bowl_composite.values())
     phase_matrix = pd.concat(all_composites, axis=1)
-    df["Phase_Score"] = phase_matrix.mean(axis=1).fillna(0)
+    df["Phase_Score"] = phase_matrix.mean(axis=1).fillna(0).round(3)
 
-    # Blend phase bonus into final score (weight 0.5 — nudges but doesn't dominate)
-    df["Fantasy_Score"] = (base_score + df["Phase_Score"] * 0.5).fillna(0)
+    # Fantasy Score is purely stats-based (no phase score blended)
+    # Phase_Score is strictly used for phase ranking and specialist identification
+    df["Fantasy_Score"] = base_score.fillna(0)
 
     # --- SPECIALIST ROLE TAGS (top-quartile composite per phase) ---
     specialist_map = [

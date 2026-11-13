@@ -3,7 +3,7 @@
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
 ![PuLP](https://img.shields.io/badge/Linear%20Programming-PuLP-orange)
-![Tests](https://img.shields.io/badge/Tests-53%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-55%20passing-brightgreen)
 ![Players](https://img.shields.io/badge/Player%20Pool-381%20players-blue)
 ![Prices](https://img.shields.io/badge/Prices-IPL%202026%20Auction-gold)
 
@@ -46,22 +46,22 @@ This section details how every statistic, rating, composite index, and optimizat
 │ Bat & Bowl composites     │ │ 80% shrinkage penalties   │
 └────────────┬──────────────┘ └────────────┬──────────────┘
              │                             │
-             └──────────────┬──────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│  Stage 4: Composite Fantasy Rating                     │
-│  Fantasy Score = Batting + Bowling + 0.5 × Phase Score │
-└──────────────────────────┬─────────────────────────────┘
-                           │
-                           ▼
-┌────────────────────────────────────────────────────────┐
-│  Stage 5: Moneyball Value Metric & Pareto Frontier     │
-│  Value Score = Fantasy Score ÷ Auction Price (₹ Cr)    │
-│  Pareto dominance check surfaces efficient frontier    │
-└──────────────────────────┬─────────────────────────────┘
-                           │
-                           ▼
+             │ (Specialist Tags)           │ (Normalized Stats)
+             │                             ▼
+             │              ┌────────────────────────────────────────┐
+             │              │  Stage 4: Composite Fantasy Rating     │
+             │              │  Fantasy Score = Batting + Bowling     │
+             │              │  (Grounded strictly in career output)  │
+             │              └──────────────┬─────────────────────────┘
+             │                             │
+             │                             ▼
+             │              ┌────────────────────────────────────────┐
+             │              │  Stage 5: Moneyball Value Metric       │
+             │              │  Value Score = Fantasy ÷ Price (₹ Cr)  │
+             │              │  Pareto dominance -> Efficient Frontier│
+             │              └──────────────┬─────────────────────────┘
+             │                             │
+             ▼                             ▼
 ┌────────────────────────────────────────────────────────┐
 │  Stage 6: Integer Linear Programming (PuLP / CBC)      │
 │  Maximize Sum(Fantasy Score) subject to IPL rules,     │
@@ -153,11 +153,16 @@ $$
 $$
 
 #### Aggregate Phase Score & Specialist Identification
-The `Phase_Score` is the arithmetic mean across all available normalized phase metrics for a player:
+The `Phase_Score` is the arithmetic mean across all available normalized phase metrics for a player, truncated to 3 decimal places:
 
 $$
-\text{Phase Score} = \frac{1}{|M_i|} \sum_{m \in M_i} m
+\text{Phase Score} = \text{round}\left(\frac{1}{|M_i|} \sum_{m \in M_i} m, \; 3\right)
 $$
+
+> **Design Choice**: The `Phase_Score` is **not blended into the overall Fantasy Score**. This keeps overall player valuation grounded purely in robust career production without distorting ratings for players with lower ball counts in specific phases. Instead, phase analytics are used strictly to:
+> 1. **Rank specialists** in the Phase Analysis tab (Powerplay, Middle, Death).
+> 2. **Tag top-quartile specialists** for the Integer Linear Program.
+> 3. **Enforce tactical draft conditions** (e.g. guaranteeing at least 1 Death Overs batting specialist or 1 Powerplay bowler in the starting XI).
 
 **Specialist Tags** are assigned to players ranking in the top quartile ($75^{\text{th}}$ percentile) of the respective phase composite:
 - `pp_bat_specialist`: $\text{Composite}_{\text{bat}, \text{PP}} \ge Q_3$
@@ -201,7 +206,7 @@ To guard against small-sample noise (e.g. a batter who faced 2 balls and hit a s
 
 ### Stage 4: Composite Fantasy Rating
 
-Each player receives a holistic `Fantasy_Score` combining batting capability, bowling capability, and phase impact:
+Each player receives a holistic `Fantasy_Score` derived from their career batting and bowling contributions, scaled by the chosen strategic focus:
 
 #### 1. Batting Sub-Score
 
@@ -218,7 +223,7 @@ $$
 #### 3. Total Fantasy Score
 
 $$
-\text{Fantasy Score} = w_{\text{bat}} \cdot \text{Score}_{\text{bat}} + w_{\text{bowl}} \cdot \text{Score}_{\text{bowl}} + 0.50 \cdot \text{Phase Score}
+\text{Fantasy Score} = w_{\text{bat}} \cdot \text{Score}_{\text{bat}} + w_{\text{bowl}} \cdot \text{Score}_{\text{bowl}}
 $$
 
 where strategy weights adjust team focus:
@@ -429,13 +434,13 @@ Ball-by-ball specialist analysis using **IPL 2022–2026 data** with recency-wei
 ## 🧪 Test Coverage
 
 ```
-tests/test_optimizer.py  —  53 tests
+tests/test_optimizer.py  —  55 tests
 
 TestCalculateFantasy          (10)  score columns, non-negative, strategy weights, normalisation
 TestOptimizeTeam               (9)  11 players, budget, strict/flexible modes, inclusions/exclusions
 TestGetEfficientFrontier       (5)  non-empty, subset of pool, sorted, no dominated pairs
 TestLoadPhaseStats             (8)  DataFrame structure, Pakistani filter, SR/economy validity, no dupes
-TestCalculateFantasyWithPhase  (6)  Phase_Score column, specialist tags, non-negative, no NaN
+TestCalculateFantasyWithPhase  (8)  Phase_Score column, 3-decimal truncation, specialist tags, independence
 TestPhaseSpecialistConstraints (4)  LP constraints for PP bat/bowl, Death bowl, all 4 together
 TestBBBDataGenerator          (11)  returns DataFrame, 381 players, 2026 prices, recency weights,
                                     alias map, role inference, no wkts_per_over columns
