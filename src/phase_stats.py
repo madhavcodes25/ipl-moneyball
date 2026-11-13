@@ -152,23 +152,24 @@ def _compute_batting_phase_stats(ipl: pd.DataFrame) -> pd.DataFrame:
 
     Stats computed
     --------------
-    - Strike Rate (SR): runs per 100 legal balls — primary aggression metric
-    - Boundary % (boundary_pct): (fours + sixes) per 100 legal balls — measures
-      explosive hitting ability independent of running between wickets
+    - Strike Rate (SR): runs per 100 legal balls — scoring rate / aggression
+    - Runs: total runs in that phase — volume / consistency metric
+    - Average (avg): runs per dismissal — quality, penalises cheap dismissals
+      (computed as season-avg weighted by balls; 0 dismissals → avg = runs for that season)
 
     Args:
         ipl: Filtered IPL ball-by-ball DataFrame with phase & season columns.
 
     Returns:
         Wide DataFrame indexed by player_name with columns:
-        pp_bat_sr, middle_bat_sr, death_bat_sr,
-        pp_bat_boundary_pct, middle_bat_boundary_pct, death_bat_boundary_pct,
+        pp_bat_sr,   middle_bat_sr,   death_bat_sr,
+        pp_bat_runs, middle_bat_runs,  death_bat_runs,
+        pp_bat_avg,  middle_bat_avg,   death_bat_avg,
         pp_bat_balls, middle_bat_balls, death_bat_balls
     """
-    # Legal deliveries only for batting SR (exclude wides from ball count)
+    # Legal deliveries only (exclude wides from ball/run count)
     legal = ipl[~ipl["is_wide"]].copy()
 
-    # Per-player / per-phase / per-season aggregation — include boundary counts
     agg = (
         legal.groupby(
             ["striker_name", "season", "phase"], observed=True
@@ -176,56 +177,61 @@ def _compute_batting_phase_stats(ipl: pd.DataFrame) -> pd.DataFrame:
         .agg(
             balls=("runs", "count"),
             runs=("runs", "sum"),
-            fours=("is_four", "sum"),
-            sixes=("is_six", "sum"),
+            dismissals=("is_wicket", "sum"),
         )
         .reset_index()
     )
 
-    agg["strike_rate"]    = (agg["runs"] / agg["balls"] * 100).round(2)
-    # Boundary % = (fours + sixes) per 100 balls — includes both 4s and 6s
-    agg["boundary_pct"]  = ((agg["fours"] + agg["sixes"]) / agg["balls"] * 100).round(2)
-    agg["weight"]         = agg["season"].map(SEASON_WEIGHTS).fillna(1)
+    agg["strike_rate"] = (agg["runs"] / agg["balls"] * 100).round(2)
+    # Average = runs / dismissals; 0 dismissals treated as not-out → use runs as proxy
+    agg["bat_avg"] = (agg["runs"] / agg["dismissals"].replace(0, np.nan)).fillna(agg["runs"]).round(2)
+    agg["weight"]  = agg["season"].map(SEASON_WEIGHTS).fillna(1)
 
-    # Weighted collapse across seasons per player+phase
     records = []
     for (player, phase), grp in agg.groupby(["striker_name", "phase"], observed=True):
-        w_sr           = _weighted_avg(grp, "strike_rate",   "balls", "weight")
-        w_boundary_pct = _weighted_avg(grp, "boundary_pct",  "balls", "weight")
-        total_balls    = grp["balls"].sum()
+        w_sr    = _weighted_avg(grp, "strike_rate", "balls", "weight")
+        w_avg   = _weighted_avg(grp, "bat_avg",     "balls", "weight")
+        total_balls = grp["balls"].sum()
+        # Weighted runs: sum of (runs_s × weight_s) / sum(weight_s) — a normalised volume metric
+        total_weight = grp["weight"].sum()
+        w_runs = (grp["runs"] * grp["weight"]).sum() / total_weight if total_weight > 0 else grp["runs"].sum()
         records.append({
-            "player_name":    player,
-            "phase":          phase,
-            "bat_sr":         w_sr,
-            "bat_boundary_pct": w_boundary_pct,
-            "bat_balls":      total_balls,
+            "player_name": player,
+            "phase":       phase,
+            "bat_sr":      w_sr,
+            "bat_runs":    round(w_runs, 2),
+            "bat_avg":     w_avg,
+            "bat_balls":   total_balls,
         })
 
     phase_df = pd.DataFrame(records)
 
-    # Apply minimum ball thresholds — null out stats below threshold
+    # Apply minimum ball thresholds — null all rate stats below threshold
     for phase_name, min_b in MIN_BAT_BALLS.items():
         mask = (phase_df["phase"] == phase_name) & (phase_df["bat_balls"] < min_b)
-        phase_df.loc[mask, ["bat_sr", "bat_boundary_pct"]] = np.nan
+        phase_df.loc[mask, ["bat_sr", "bat_runs", "bat_avg"]] = np.nan
 
     # Pivot to wide format
     wide = phase_df.pivot_table(
         index="player_name",
         columns="phase",
-        values=["bat_sr", "bat_boundary_pct", "bat_balls"],
+        values=["bat_sr", "bat_runs", "bat_avg", "bat_balls"],
         aggfunc="first",
     )
     wide.columns = [f"{col[1].lower()}_{col[0]}" for col in wide.columns]
     wide = wide.rename(columns={
-        "powerplay_bat_sr":           "pp_bat_sr",
-        "middle_bat_sr":              "middle_bat_sr",
-        "death_bat_sr":               "death_bat_sr",
-        "powerplay_bat_boundary_pct": "pp_bat_boundary_pct",
-        "middle_bat_boundary_pct":    "middle_bat_boundary_pct",
-        "death_bat_boundary_pct":     "death_bat_boundary_pct",
-        "powerplay_bat_balls":        "pp_bat_balls",
-        "middle_bat_balls":           "middle_bat_balls",
-        "death_bat_balls":            "death_bat_balls",
+        "powerplay_bat_sr":    "pp_bat_sr",
+        "middle_bat_sr":       "middle_bat_sr",
+        "death_bat_sr":        "death_bat_sr",
+        "powerplay_bat_runs":  "pp_bat_runs",
+        "middle_bat_runs":     "middle_bat_runs",
+        "death_bat_runs":      "death_bat_runs",
+        "powerplay_bat_avg":   "pp_bat_avg",
+        "middle_bat_avg":      "middle_bat_avg",
+        "death_bat_avg":       "death_bat_avg",
+        "powerplay_bat_balls": "pp_bat_balls",
+        "middle_bat_balls":    "middle_bat_balls",
+        "death_bat_balls":     "death_bat_balls",
     })
     return wide.reset_index()
 

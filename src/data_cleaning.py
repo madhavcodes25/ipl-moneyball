@@ -13,13 +13,14 @@ _PAKISTANI_PLAYERS = {
 
 # Phase stat columns that will be added from the RR ball-by-ball data
 PHASE_COLS = [
-    "pp_bat_sr", "middle_bat_sr", "death_bat_sr",
-    "pp_bat_boundary_pct", "middle_bat_boundary_pct", "death_bat_boundary_pct",
-    "pp_bat_balls", "middle_bat_balls", "death_bat_balls",
-    "pp_bowl_econ", "middle_bowl_econ", "death_bowl_econ",
-    "pp_bowl_wkts_po", "middle_bowl_wkts_po", "death_bowl_wkts_po",
-    "pp_bowl_wkts", "middle_bowl_wkts", "death_bowl_wkts",
-    "pp_bowl_balls", "middle_bowl_balls", "death_bowl_balls",
+    "pp_bat_sr",   "middle_bat_sr",   "death_bat_sr",
+    "pp_bat_runs", "middle_bat_runs", "death_bat_runs",
+    "pp_bat_avg",  "middle_bat_avg",  "death_bat_avg",
+    "pp_bat_balls","middle_bat_balls","death_bat_balls",
+    "pp_bowl_econ",   "middle_bowl_econ",   "death_bowl_econ",
+    "pp_bowl_wkts_po","middle_bowl_wkts_po","death_bowl_wkts_po",
+    "pp_bowl_wkts",   "middle_bowl_wkts",   "death_bowl_wkts",
+    "pp_bowl_balls",  "middle_bowl_balls",  "death_bowl_balls",
 ]
 
 

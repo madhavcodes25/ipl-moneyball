@@ -684,14 +684,15 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
     st.subheader("⚡ Phase Specialist Analysis")
     st.caption(
         "Ball-by-ball stats from **IPL 2022–2026** (RR Hackathon data) with recency-weighted averages. "
-        "**Bat score** = SR + Boundary%  ·  **Bowl score** = Economy + Wickets/Over."
+        "**Bat score** = SR + Runs + Average  ·  **Bowl score** = Economy + Wickets/Over."
     )
 
-    BAT_SR_COLS    = {"Powerplay": "pp_bat_sr",          "Middle": "middle_bat_sr",         "Death": "death_bat_sr"}
-    BAT_BPCT_COLS  = {"Powerplay": "pp_bat_boundary_pct","Middle": "middle_bat_boundary_pct","Death": "death_bat_boundary_pct"}
-    BOWL_EC_COLS   = {"Powerplay": "pp_bowl_econ",        "Middle": "middle_bowl_econ",       "Death": "death_bowl_econ"}
-    BOWL_WPO_COLS  = {"Powerplay": "pp_bowl_wkts_po",     "Middle": "middle_bowl_wkts_po",    "Death": "death_bowl_wkts_po"}
-    BOWL_WK_COLS   = {"Powerplay": "pp_bowl_wkts",        "Middle": "middle_bowl_wkts",       "Death": "death_bowl_wkts"}
+    BAT_SR_COLS    = {"Powerplay": "pp_bat_sr",    "Middle": "middle_bat_sr",    "Death": "death_bat_sr"}
+    BAT_RUNS_COLS  = {"Powerplay": "pp_bat_runs",  "Middle": "middle_bat_runs",  "Death": "death_bat_runs"}
+    BAT_AVG_COLS   = {"Powerplay": "pp_bat_avg",   "Middle": "middle_bat_avg",   "Death": "death_bat_avg"}
+    BOWL_EC_COLS   = {"Powerplay": "pp_bowl_econ", "Middle": "middle_bowl_econ", "Death": "death_bowl_econ"}
+    BOWL_WPO_COLS  = {"Powerplay": "pp_bowl_wkts_po","Middle":"middle_bowl_wkts_po","Death":"death_bowl_wkts_po"}
+    BOWL_WK_COLS   = {"Powerplay": "pp_bowl_wkts", "Middle": "middle_bowl_wkts", "Death": "death_bowl_wkts"}
 
     phase_available = any(col in scored_data.columns for col in BAT_SR_COLS.values())
     if not phase_available:
@@ -699,7 +700,7 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
         return
 
     all_phase_cols = (
-        list(BAT_SR_COLS.values()) + list(BAT_BPCT_COLS.values()) +
+        list(BAT_SR_COLS.values()) + list(BAT_RUNS_COLS.values()) + list(BAT_AVG_COLS.values()) +
         list(BOWL_EC_COLS.values()) + list(BOWL_WPO_COLS.values()) + list(BOWL_WK_COLS.values())
     )
     phase_df = scored_data[
@@ -717,47 +718,52 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
     st.divider()
     col_bat, col_bowl = st.columns(2)
 
-    # ---- Batting Specialists: SR + Boundary% composite ----
+    # ---- Batting Specialists: SR + Runs + Avg composite ----
     with col_bat:
-        bat_col  = BAT_SR_COLS[phase_key]
-        bpct_col = BAT_BPCT_COLS[phase_key]
+        bat_col   = BAT_SR_COLS[phase_key]
+        runs_col  = BAT_RUNS_COLS[phase_key]
+        avg_col   = BAT_AVG_COLS[phase_key]
         st.markdown(f"### 🏏 {phase_select} Batting Specialists")
-        st.caption("Score = **0.6 × SR** + **0.4 × Boundary%** — rewards aggression AND boundary-hitting ability.")
+        st.caption("Score = **0.4 × SR** + **0.3 × Runs** + **0.3 × Average** — rate, volume, and quality combined.")
         if bat_col in phase_df.columns:
             bat_view = phase_df[phase_df[bat_col].notna()].copy()
-            bat_view = bat_view.rename(columns={bat_col: "Strike Rate"})
-            if bpct_col in bat_view.columns:
-                bat_view = bat_view.rename(columns={bpct_col: "Boundary%"})
+            bat_view = bat_view.rename(columns={bat_col: "SR", runs_col: "Runs", avg_col: "Average"})
 
-            sr_max = bat_view["Strike Rate"].max(); sr_min = bat_view["Strike Rate"].min()
-            bat_view["_norm_sr"] = ((bat_view["Strike Rate"] - sr_min) / (sr_max - sr_min + 1e-6)).clip(0, 1)
-            if "Boundary%" in bat_view.columns:
-                bp_max = bat_view["Boundary%"].max(); bp_min = bat_view["Boundary%"].min()
-                bat_view["_norm_bp"] = ((bat_view["Boundary%"] - bp_min) / (bp_max - bp_min + 1e-6)).clip(0, 1)
-                bat_view["Composite"] = (0.6 * bat_view["_norm_sr"] + 0.4 * bat_view["_norm_bp"]).round(3)
+            def _norm(s):
+                mn, mx = s.min(), s.max()
+                return ((s - mn) / (mx - mn + 1e-6)).clip(0, 1)
+
+            bat_view["_ns"] = _norm(bat_view["SR"])
+            if "Runs" in bat_view.columns:
+                bat_view["_nr"] = _norm(bat_view["Runs"])
+                if "Average" in bat_view.columns:
+                    bat_view["_na"] = _norm(bat_view["Average"])
+                    bat_view["Composite"] = (0.4*bat_view["_ns"] + 0.3*bat_view["_nr"] + 0.3*bat_view["_na"]).round(3)
+                else:
+                    bat_view["Composite"] = (0.6*bat_view["_ns"] + 0.4*bat_view["_nr"]).round(3)
             else:
-                bat_view["Composite"] = bat_view["_norm_sr"].round(3)
+                bat_view["Composite"] = bat_view["_ns"].round(3)
 
-            drop_cols = [c for c in ["_norm_sr", "_norm_bp"] if c in bat_view.columns]
-            keep_cols = ["Player Name", "Role", "Strike Rate"] + (["Boundary%"] if "Boundary%" in bat_view.columns else []) + ["Composite"]
-            bat_top = bat_view[keep_cols].drop(columns=drop_cols, errors="ignore").sort_values("Composite", ascending=False).head(15).reset_index(drop=True)
+            keep = ["Player Name", "Role"] + [c for c in ["SR", "Runs", "Average", "Composite"] if c in bat_view.columns]
+            bat_top = bat_view[keep].sort_values("Composite", ascending=False).head(15).reset_index(drop=True)
             bat_top.index += 1
 
             if not bat_top.empty:
                 fig_bat = px.bar(
                     bat_top.head(10), x="Player Name", y="Composite", color="Role",
-                    title=f"Top 10 — {phase_select} Batting Composite",
+                    title=f"Top 10 — {phase_select} Batting Composite (SR + Runs + Avg)",
                     text_auto=".3f", color_discrete_sequence=px.colors.qualitative.Pastel,
                 )
                 fig_bat.update_layout(xaxis_tickangle=-35, paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"))
                 st.plotly_chart(fig_bat, use_container_width=True, key=f"phase_bat_bar_{phase_key}")
-                bat_top["Strike Rate"] = bat_top["Strike Rate"].round(1)
-                if "Boundary%" in bat_top.columns:
-                    bat_top["Boundary%"] = bat_top["Boundary%"].round(1)
+                for c, fmt in [("SR","%.1f"),("Runs","%.1f"),("Average","%.2f")]:
+                    if c in bat_top.columns:
+                        bat_top[c] = bat_top[c].round(2)
                 col_cfg_bat = {
-                    "Strike Rate": st.column_config.NumberColumn("SR",         format="%.1f"),
-                    "Boundary%":   st.column_config.NumberColumn("Boundary%",  format="%.1f"),
-                    "Composite":   st.column_config.NumberColumn("Score",       format="%.3f"),
+                    "SR":        st.column_config.NumberColumn("SR",      format="%.1f"),
+                    "Runs":      st.column_config.NumberColumn("Runs",    format="%.1f"),
+                    "Average":   st.column_config.NumberColumn("Average", format="%.2f"),
+                    "Composite": st.column_config.NumberColumn("Score",   format="%.3f"),
                 }
                 st.dataframe(bat_top, use_container_width=True, height=350, hide_index=False, column_config=col_cfg_bat)
             else:
@@ -871,9 +877,10 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
     st.markdown("### 📊 All-Phase Specialist Summary")
     summary_base_cols = ["Player Name", "Role", "Cost_Cr"]
     phase_stat_candidates = [
-        "pp_bat_sr", "middle_bat_sr", "death_bat_sr",
-        "pp_bat_boundary_pct", "middle_bat_boundary_pct", "death_bat_boundary_pct",
-        "pp_bowl_econ", "middle_bowl_econ", "death_bowl_econ",
+        "pp_bat_sr",   "middle_bat_sr",   "death_bat_sr",
+        "pp_bat_runs", "middle_bat_runs", "death_bat_runs",
+        "pp_bat_avg",  "middle_bat_avg",  "death_bat_avg",
+        "pp_bowl_econ",    "middle_bowl_econ",    "death_bowl_econ",
         "pp_bowl_wkts_po", "middle_bowl_wkts_po", "death_bowl_wkts_po",
     ]
     present_phase_cols = [c for c in phase_stat_candidates if c in scored_data.columns]
@@ -882,10 +889,11 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
 
     rename_map = {
         "Cost_Cr": "Price (Cr)",
-        "pp_bat_sr": "PP SR", "middle_bat_sr": "Mid SR", "death_bat_sr": "Death SR",
-        "pp_bat_boundary_pct": "PP Bdry%", "middle_bat_boundary_pct": "Mid Bdry%", "death_bat_boundary_pct": "Death Bdry%",
-        "pp_bowl_econ": "PP Econ", "middle_bowl_econ": "Mid Econ", "death_bowl_econ": "Death Econ",
-        "pp_bowl_wkts_po": "PP W/Over", "middle_bowl_wkts_po": "Mid W/Over", "death_bowl_wkts_po": "Death W/Over",
+        "pp_bat_sr": "PP SR",      "middle_bat_sr": "Mid SR",   "death_bat_sr": "Death SR",
+        "pp_bat_runs": "PP Runs",  "middle_bat_runs": "Mid Runs","death_bat_runs": "Death Runs",
+        "pp_bat_avg": "PP Avg",    "middle_bat_avg": "Mid Avg",  "death_bat_avg": "Death Avg",
+        "pp_bowl_econ": "PP Econ", "middle_bowl_econ": "Mid Econ","death_bowl_econ": "Death Econ",
+        "pp_bowl_wkts_po": "PP W/Over","middle_bowl_wkts_po": "Mid W/Over","death_bowl_wkts_po": "Death W/Over",
     }
     summary_df = summary_df.rename(columns={k: v for k, v in rename_map.items() if k in summary_df.columns})
     sort_col = "PP SR" if "PP SR" in summary_df.columns else summary_df.columns[2]
@@ -896,19 +904,22 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
         summary_df[col] = summary_df[col].round(2)
 
     summary_col_cfg = {
-        "Price (Cr)":   st.column_config.NumberColumn("Price (Cr)", format="₹%.2f Cr"),
-        "PP SR":        st.column_config.NumberColumn("PP SR",       format="%.1f"),
-        "Mid SR":       st.column_config.NumberColumn("Mid SR",      format="%.1f"),
-        "Death SR":     st.column_config.NumberColumn("Death SR",    format="%.1f"),
-        "PP Bdry%":     st.column_config.NumberColumn("PP Bdry%",    format="%.1f"),
-        "Mid Bdry%":    st.column_config.NumberColumn("Mid Bdry%",   format="%.1f"),
-        "Death Bdry%":  st.column_config.NumberColumn("Death Bdry%", format="%.1f"),
-        "PP Econ":      st.column_config.NumberColumn("PP Econ",     format="%.2f"),
-        "Mid Econ":     st.column_config.NumberColumn("Mid Econ",    format="%.2f"),
-        "Death Econ":   st.column_config.NumberColumn("Death Econ",  format="%.2f"),
-        "PP W/Over":    st.column_config.NumberColumn("PP W/Over",   format="%.3f"),
-        "Mid W/Over":   st.column_config.NumberColumn("Mid W/Over",  format="%.3f"),
-        "Death W/Over": st.column_config.NumberColumn("Death W/Over",format="%.3f"),
+        "Price (Cr)":   st.column_config.NumberColumn("Price (Cr)",  format="₹%.2f Cr"),
+        "PP SR":        st.column_config.NumberColumn("PP SR",        format="%.1f"),
+        "Mid SR":       st.column_config.NumberColumn("Mid SR",       format="%.1f"),
+        "Death SR":     st.column_config.NumberColumn("Death SR",     format="%.1f"),
+        "PP Runs":      st.column_config.NumberColumn("PP Runs",      format="%.1f"),
+        "Mid Runs":     st.column_config.NumberColumn("Mid Runs",     format="%.1f"),
+        "Death Runs":   st.column_config.NumberColumn("Death Runs",   format="%.1f"),
+        "PP Avg":       st.column_config.NumberColumn("PP Avg",       format="%.2f"),
+        "Mid Avg":      st.column_config.NumberColumn("Mid Avg",      format="%.2f"),
+        "Death Avg":    st.column_config.NumberColumn("Death Avg",    format="%.2f"),
+        "PP Econ":      st.column_config.NumberColumn("PP Econ",      format="%.2f"),
+        "Mid Econ":     st.column_config.NumberColumn("Mid Econ",     format="%.2f"),
+        "Death Econ":   st.column_config.NumberColumn("Death Econ",   format="%.2f"),
+        "PP W/Over":    st.column_config.NumberColumn("PP W/Over",    format="%.3f"),
+        "Mid W/Over":   st.column_config.NumberColumn("Mid W/Over",   format="%.3f"),
+        "Death W/Over": st.column_config.NumberColumn("Death W/Over", format="%.3f"),
     }
     st.dataframe(summary_df, use_container_width=True, height=400, column_config=summary_col_cfg)
     st.caption(f"Showing {len(summary_df)} players with phase data. Sorted by Powerplay SR descending.")

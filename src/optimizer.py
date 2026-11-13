@@ -79,12 +79,16 @@ def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
 
     # --- PHASE SPECIALIST BONUS ---
     # Composite specialist scores per phase:
-    #   Batting  = 0.6 × norm(SR)  + 0.4 × norm(boundary_pct)
+    #   Batting  = 0.4 × norm(SR) + 0.3 × norm(runs) + 0.3 × norm(avg)
     #   Bowling  = 0.5 × norm(inv_economy) + 0.5 × norm(wkts_per_over)
     #
-    # This captures both aggression (SR) + explosiveness (boundary%) for batters,
-    # and containment (economy) + wicket-taking threat (wkts/over) for bowlers.
-    # Only players with real ball-by-ball data get non-zero phase scores.
+    # Batting composite:
+    #   - SR captures scoring rate / aggression
+    #   - Runs captures volume / consistency in that phase (how often they play there)
+    #   - Average captures quality — penalises cheap dismissals
+    # Bowling composite:
+    #   - Economy captures containment
+    #   - Wkts/Over captures wicket-taking threat (a pure miser with no wickets ≠ specialist)
 
     def _minmax_norm(series: pd.Series, invert: bool = False) -> pd.Series:
         """Min-max normalize a series to [0,1]; invert for 'lower is better' metrics."""
@@ -98,23 +102,26 @@ def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
             normed = ((series - mn) / (mx - mn + 1e-6)).clip(0, 1)
         return normed.fillna(0)
 
-    # --- Batting composite per phase ---
+    # --- Batting composite per phase: SR + Runs + Average ---
     bat_phase_map = {
-        "pp":     ("pp_bat_sr",     "pp_bat_boundary_pct"),
-        "middle": ("middle_bat_sr", "middle_bat_boundary_pct"),
-        "death":  ("death_bat_sr",  "death_bat_boundary_pct"),
+        "pp":     ("pp_bat_sr",     "pp_bat_runs",     "pp_bat_avg"),
+        "middle": ("middle_bat_sr", "middle_bat_runs", "middle_bat_avg"),
+        "death":  ("death_bat_sr",  "death_bat_runs",  "death_bat_avg"),
     }
     bat_composite = {}
-    for phase_key, (sr_col, bpct_col) in bat_phase_map.items():
+    for phase_key, (sr_col, runs_col, avg_col) in bat_phase_map.items():
         sr_norm   = _minmax_norm(df[sr_col])   if sr_col   in df.columns else pd.Series(0.0, index=df.index)
-        bpct_norm = _minmax_norm(df[bpct_col]) if bpct_col in df.columns else pd.Series(0.0, index=df.index)
-        # If boundary_pct column exists use composite; otherwise fall back to SR only
-        if bpct_col in df.columns:
-            bat_composite[phase_key] = (0.6 * sr_norm + 0.4 * bpct_norm)
-        else:
-            bat_composite[phase_key] = sr_norm
+        runs_norm = _minmax_norm(df[runs_col]) if runs_col in df.columns else pd.Series(0.0, index=df.index)
+        avg_norm  = _minmax_norm(df[avg_col])  if avg_col  in df.columns else pd.Series(0.0, index=df.index)
 
-    # --- Bowling composite per phase ---
+        if runs_col in df.columns and avg_col in df.columns:
+            bat_composite[phase_key] = 0.4 * sr_norm + 0.3 * runs_norm + 0.3 * avg_norm
+        elif runs_col in df.columns:
+            bat_composite[phase_key] = 0.6 * sr_norm + 0.4 * runs_norm
+        else:
+            bat_composite[phase_key] = sr_norm  # fallback
+
+    # --- Bowling composite per phase: Economy + Wkts/Over ---
     bowl_phase_map = {
         "pp":     ("pp_bowl_econ",     "pp_bowl_wkts_po"),
         "middle": ("middle_bowl_econ", "middle_bowl_wkts_po"),
@@ -125,7 +132,7 @@ def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
         econ_norm = _minmax_norm(df[econ_col], invert=True) if econ_col in df.columns else pd.Series(0.0, index=df.index)
         wpo_norm  = _minmax_norm(df[wpo_col])               if wpo_col  in df.columns else pd.Series(0.0, index=df.index)
         if wpo_col in df.columns:
-            bowl_composite[phase_key] = (0.5 * econ_norm + 0.5 * wpo_norm)
+            bowl_composite[phase_key] = 0.5 * econ_norm + 0.5 * wpo_norm
         else:
             bowl_composite[phase_key] = econ_norm
 
@@ -138,16 +145,13 @@ def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
     df["Fantasy_Score"] = (base_score + df["Phase_Score"] * 0.5).fillna(0)
 
     # --- SPECIALIST ROLE TAGS (top-quartile composite per phase) ---
-    # Batting: top 25% composite score = specialist
-    # Bowling: top 25% composite score = specialist (already higher is better in composite)
     specialist_map = [
-        ("pp_bat_specialist",    bat_composite["pp"],     False),
-        ("death_bat_specialist", bat_composite["death"],  False),
-        ("pp_bowl_specialist",   bowl_composite["pp"],    False),
-        ("death_bowl_specialist",bowl_composite["death"], False),
+        ("pp_bat_specialist",    bat_composite["pp"]),
+        ("death_bat_specialist", bat_composite["death"]),
+        ("pp_bowl_specialist",   bowl_composite["pp"]),
+        ("death_bowl_specialist",bowl_composite["death"]),
     ]
-    for tag, composite_series, _ in specialist_map:
-        # Only label players who have actual data (composite > 0)
+    for tag, composite_series in specialist_map:
         has_data = composite_series > 0
         if has_data.any():
             threshold = composite_series[has_data].quantile(0.75)
