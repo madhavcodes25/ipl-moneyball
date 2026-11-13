@@ -187,15 +187,15 @@ $$
 $$
 
 #### Small-Sample Shrinkage Penalties
-To guard against small-sample noise (e.g. a batter who faced 2 balls and hit a six having an inflated 300.0 SR):
-- **Batters with $\text{Runs} < 30$** (penalize Strike Rate and Average by 80%):
-  $$
-  \text{norm}(\text{SR}) \leftarrow \text{norm}(\text{SR}) \times 0.20, \quad \text{norm}(\text{Avg}) \leftarrow \text{norm}(\text{Avg}) \times 0.20
-  $$
-- **Bowlers with $\text{Wickets} < 2$** (penalize Economy and Bowling Average by 80%):
-  $$
-  \text{norm}_{\text{inv}}(\text{Econ}) \leftarrow \text{norm}_{\text{inv}}(\text{Econ}) \times 0.20, \quad \text{norm}_{\text{inv}}(\text{BowlAvg}) \leftarrow \text{norm}_{\text{inv}}(\text{BowlAvg}) \times 0.20
-  $$
+To guard against small-sample noise (e.g. a batter who faced 2 balls and hit a six having an inflated 300.0 Strike Rate):
+
+- **Batters with fewer than 30 runs** (`Runs < 30`): Normalized Strike Rate and Average are penalized by 80%:
+  - $\text{norm(SR)} \leftarrow 0.20 \times \text{norm(SR)}$
+  - $\text{norm(Avg)} \leftarrow 0.20 \times \text{norm(Avg)}$
+
+- **Bowlers with fewer than 2 wickets** (`Wickets < 2`): Normalized Economy and Bowling Average are penalized by 80%:
+  - $\text{norm(Econ)} \leftarrow 0.20 \times \text{norm(Econ)}$
+  - $\text{norm(BowlAvg)} \leftarrow 0.20 \times \text{norm(BowlAvg)}$
 
 ---
 
