@@ -1,0 +1,354 @@
+comp_id,team_id,team_name
+1331,22,England
+1331,28,West Indies
+1335,18,India
+1335,28,West Indies
+1345,20,Australia
+1345,27,Sri Lanka
+1358,1,Chennai Super Kings
+1358,2,Mumbai Indians
+1358,3,Rajasthan Royals
+1358,4,Punjab Kings
+1358,5,Royal Challengers Bengaluru
+1358,7,Delhi Capitals
+1358,8,Kolkata Knight Riders
+1358,242,Sunrisers Hyderabad
+1358,3508,Gujarat Titans
+1358,3509,Lucknow Super Giants
+1435,20,Australia
+1435,27,Sri Lanka
+1439,18,India
+1439,19,South Africa
+1452,21,Bangladesh
+1452,28,West Indies
+1458,72,Zimbabwe
+1458,78,Afghanistan
+1474,18,India
+1474,23,Ireland
+1494,18,India
+1494,22,England
+1499,18,India
+1499,28,West Indies
+1512,17,New Zealand
+1512,23,Ireland
+1517,19,South Africa
+1517,22,England
+1523,21,Bangladesh
+1523,72,Zimbabwe
+1531,19,South Africa
+1531,23,Ireland
+1533,18,India
+1533,21,Bangladesh
+1533,25,Pakistan
+1533,27,Sri Lanka
+1533,78,Afghanistan
+1533,283,Hong Kong
+1534,17,New Zealand
+1534,24,Netherlands
+1537,17,New Zealand
+1537,23,Ireland
+1537,27,Sri Lanka
+1537,28,West Indies
+1543,23,Ireland
+1543,78,Afghanistan
+1551,272,United Arab Emirates
+1551,283,Hong Kong
+1551,311,Singapore
+1551,312,Kuwait
+1584,18,India
+1584,20,Australia
+1595,22,England
+1595,25,Pakistan
+1599,18,India
+1599,19,South Africa
+1601,21,Bangladesh
+1601,272,United Arab Emirates
+1603,20,Australia
+1603,28,West Indies
+1608,17,New Zealand
+1608,21,Bangladesh
+1608,25,Pakistan
+1611,20,Australia
+1611,22,England
+1646,17,New Zealand
+1646,18,India
+1698,18,India
+1698,27,Sri Lanka
+1700,17,New Zealand
+1700,18,India
+1709,23,Ireland
+1709,72,Zimbabwe
+1715,1,Chennai Super Kings
+1715,2,Mumbai Indians
+1715,3,Rajasthan Royals
+1715,4,Punjab Kings
+1715,5,Royal Challengers Bengaluru
+1715,7,Delhi Capitals
+1715,8,Kolkata Knight Riders
+1715,242,Sunrisers Hyderabad
+1715,3508,Gujarat Titans
+1715,3509,Lucknow Super Giants
+1718,19,South Africa
+1718,28,West Indies
+1719,17,New Zealand
+1719,27,Sri Lanka
+1742,21,Bangladesh
+1742,22,England
+1769,21,Bangladesh
+1769,23,Ireland
+1792,25,Pakistan
+1792,78,Afghanistan
+1799,17,New Zealand
+1799,25,Pakistan
+1885,21,Bangladesh
+1885,78,Afghanistan
+1913,18,India
+1913,28,West Indies
+1997,17,New Zealand
+1997,272,United Arab Emirates
+1998,18,India
+1998,23,Ireland
+1999,17,New Zealand
+1999,22,England
+2000,19,South Africa
+2000,20,Australia
+2046,18,India
+2046,20,Australia
+2047,18,India
+2047,19,South Africa
+2048,22,England
+2048,28,West Indies
+2058,17,New Zealand
+2058,21,Bangladesh
+2059,18,India
+2059,78,Afghanistan
+2060,17,New Zealand
+2060,25,Pakistan
+2061,20,Australia
+2061,28,West Indies
+2062,17,New Zealand
+2062,20,Australia
+2188,23,Ireland
+2188,72,Zimbabwe
+2193,1,Chennai Super Kings
+2193,2,Mumbai Indians
+2193,3,Rajasthan Royals
+2193,4,Punjab Kings
+2193,5,Royal Challengers Bengaluru
+2193,7,Delhi Capitals
+2193,8,Kolkata Knight Riders
+2193,242,Sunrisers Hyderabad
+2193,3508,Gujarat Titans
+2193,3509,Lucknow Super Giants
+2229,27,Sri Lanka
+2229,72,Zimbabwe
+2267,27,Sri Lanka
+2267,78,Afghanistan
+2269,23,Ireland
+2269,78,Afghanistan
+2305,21,Bangladesh
+2305,27,Sri Lanka
+2350,17,New Zealand
+2350,25,Pakistan
+2354,22,England
+2354,25,Pakistan
+2371,21,Bangladesh
+2371,72,Zimbabwe
+2372,18,India
+2372,72,Zimbabwe
+2387,20,Australia
+2387,25,Pakistan
+2395,23,Ireland
+2395,25,Pakistan
+2398,23,Ireland
+2398,24,Netherlands
+2398,26,Scotland
+2442,19,South Africa
+2442,25,Pakistan
+2452,19,South Africa
+2452,28,West Indies
+2453,19,South Africa
+2453,28,West Indies
+2455,22,England
+2455,28,West Indies
+2457,21,Bangladesh
+2457,28,West Indies
+2512,18,India
+2512,21,Bangladesh
+2513,18,India
+2513,22,England
+2542,18,India
+2542,27,Sri Lanka
+2548,20,Australia
+2548,22,England
+2561,20,Australia
+2561,26,Scotland
+2562,19,South Africa
+2562,23,Ireland
+2605,24,Netherlands
+2605,89,Canada
+2605,315,United States Of America
+2626,22,England
+2626,28,West Indies
+2628,19,South Africa
+2628,22,England
+2670,222,India A
+2670,272,United Arab Emirates
+2670,283,Hong Kong
+2670,313,Oman
+2670,341,Pakistan A
+2670,3093,Bangladesh A
+2670,3674,Sri Lanka A
+2670,4444,Afghanistan A
+2692,27,Sri Lanka
+2692,28,West Indies
+2716,17,New Zealand
+2716,27,Sri Lanka
+2718,18,India
+2718,19,South Africa
+2722,25,Pakistan
+2722,72,Zimbabwe
+2725,1,Chennai Super Kings
+2725,2,Mumbai Indians
+2725,3,Rajasthan Royals
+2725,4,Punjab Kings
+2725,5,Royal Challengers Bengaluru
+2725,7,Delhi Capitals
+2725,8,Kolkata Knight Riders
+2725,242,Sunrisers Hyderabad
+2725,3508,Gujarat Titans
+2725,3509,Lucknow Super Giants
+2753,72,Zimbabwe
+2753,78,Afghanistan
+2755,17,New Zealand
+2755,27,Sri Lanka
+2793,17,New Zealand
+2793,25,Pakistan
+2801,23,Ireland
+2801,72,Zimbabwe
+2873,23,Ireland
+2873,28,West Indies
+2874,20,Australia
+2874,28,West Indies
+2875,25,Pakistan
+2875,28,West Indies
+2906,19,South Africa
+2906,28,West Indies
+2912,19,South Africa
+2912,20,Australia
+2915,18,India
+2915,20,Australia
+2921,18,India
+2921,19,South Africa
+2940,18,India
+2940,21,Bangladesh
+2973,21,Bangladesh
+2973,25,Pakistan
+2975,21,Bangladesh
+2975,272,United Arab Emirates
+3020,21,Bangladesh
+3020,27,Sri Lanka
+3074,21,Bangladesh
+3074,25,Pakistan
+3126,18,India
+3126,22,England
+3128,22,England
+3128,27,Sri Lanka
+3133,18,India
+3133,21,Bangladesh
+3133,25,Pakistan
+3133,27,Sri Lanka
+3133,78,Afghanistan
+3133,272,United Arab Emirates
+3133,283,Hong Kong
+3133,313,Oman
+3159,25,Pakistan
+3159,78,Afghanistan
+3159,272,United Arab Emirates
+3162,27,Sri Lanka
+3162,72,Zimbabwe
+3163,21,Bangladesh
+3163,24,Netherlands
+3174,22,England
+3174,23,Ireland
+3190,28,West Indies
+3190,282,Nepal
+3197,17,New Zealand
+3197,20,Australia
+3223,19,South Africa
+3223,25,Pakistan
+3226,17,New Zealand
+3226,22,England
+3228,21,Bangladesh
+3228,78,Afghanistan
+3241,21,Bangladesh
+3241,28,West Indies
+3251,21,Bangladesh
+3251,23,Ireland
+3254,72,Zimbabwe
+3254,78,Afghanistan
+3282,17,New Zealand
+3282,28,West Indies
+3288,25,Pakistan
+3288,27,Sri Lanka
+3288,72,Zimbabwe
+3289,222,India A
+3289,272,United Arab Emirates
+3289,283,Hong Kong
+3289,313,Oman
+3289,341,Pakistan A
+3289,3093,Bangladesh A
+3289,3674,Sri Lanka A
+3289,4444,Afghanistan A
+3298,1,Chennai Super Kings
+3298,2,Mumbai Indians
+3298,3,Rajasthan Royals
+3298,4,Punjab Kings
+3298,5,Royal Challengers Bengaluru
+3298,7,Delhi Capitals
+3298,8,Kolkata Knight Riders
+3298,242,Sunrisers Hyderabad
+3298,3508,Gujarat Titans
+3298,3509,Lucknow Super Giants
+3313,23,Ireland
+3313,272,United Arab Emirates
+3317,25,Pakistan
+3317,27,Sri Lanka
+3329,17,New Zealand
+3329,18,India
+3331,28,West Indies
+3331,78,Afghanistan
+3334,22,England
+3334,27,Sri Lanka
+3358,20,Australia
+3358,25,Pakistan
+3395,17,New Zealand
+3395,19,South Africa
+3405,27,Sri Lanka
+3405,78,Afghanistan
+3433,17,New Zealand
+3433,21,Bangladesh
+3446,18,India
+3446,23,Ireland
+3450,18,India
+3450,28,West Indies
+3464,27,Sri Lanka
+3464,28,West Indies
+3465,18,India
+3465,72,Zimbabwe
+3473,272,United Arab Emirates
+3473,282,Nepal
+3482,20,Australia
+3482,21,Bangladesh
+3568,21,Bangladesh
+3568,72,Zimbabwe
+3690,17,New Zealand
+3690,18,India
+3713,18,India
+3713,78,Afghanistan
+3739,18,India
+3739,3886,Japan
+3765,25,Pakistan
+3765,27,Sri Lanka
+3787,72,Zimbabwe
+3787,78,Afghanistan
