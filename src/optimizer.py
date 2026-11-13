@@ -79,16 +79,16 @@ def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
 
     # --- PHASE SPECIALIST BONUS ---
     # Composite specialist scores per phase:
-    #   Batting  = 0.4 × norm(SR) + 0.3 × norm(runs) + 0.3 × norm(avg)
-    #   Bowling  = 0.5 × norm(inv_economy) + 0.5 × norm(wkts_per_over)
     #
-    # Batting composite:
-    #   - SR captures scoring rate / aggression
-    #   - Runs captures volume / consistency in that phase (how often they play there)
-    #   - Average captures quality — penalises cheap dismissals
-    # Bowling composite:
-    #   - Economy captures containment
-    #   - Wkts/Over captures wicket-taking threat (a pure miser with no wickets ≠ specialist)
+    #   Batting  = 0.4 × norm(SR) + 0.3 × norm(runs) + 0.3 × norm(avg)
+    #     - SR:   scoring rate / aggression
+    #     - Runs: volume / consistency in that phase (phase-specific)
+    #     - Avg:  quality — penalises cheap dismissals
+    #
+    #   Bowling  = 0.3 × norm(inv_economy) + 0.5 × norm(raw_wkts) + 0.2 × norm(wkts_per_over)
+    #     - raw_wkts (highest weight): rewards proven wicket-takers (Bhuvi 44 >> mystery bowler 3)
+    #     - inv_economy: containment
+    #     - wkts_per_over: rate signal as a tiebreaker (lower weight to avoid small-sample inflation)
 
     def _minmax_norm(series: pd.Series, invert: bool = False) -> pd.Series:
         """Min-max normalize a series to [0,1]; invert for 'lower is better' metrics."""
@@ -102,7 +102,7 @@ def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
             normed = ((series - mn) / (mx - mn + 1e-6)).clip(0, 1)
         return normed.fillna(0)
 
-    # --- Batting composite per phase: SR + Runs + Average ---
+    # --- Batting composite per phase: SR + Runs + Average (all phase-specific) ---
     bat_phase_map = {
         "pp":     ("pp_bat_sr",     "pp_bat_runs",     "pp_bat_avg"),
         "middle": ("middle_bat_sr", "middle_bat_runs", "middle_bat_avg"),
@@ -121,18 +121,25 @@ def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
         else:
             bat_composite[phase_key] = sr_norm  # fallback
 
-    # --- Bowling composite per phase: Economy + Wkts/Over ---
+    # --- Bowling composite per phase: raw_wkts (heavy) + Economy + wkts_per_over (tiebreaker) ---
+    # Raw wickets get highest weight (0.5) so a proven wicket-taker like Bhuvi (44 wkts)
+    # always outranks a small-sample curiosity like Bracewell (3 wkts, fluky high rate).
     bowl_phase_map = {
-        "pp":     ("pp_bowl_econ",     "pp_bowl_wkts_po"),
-        "middle": ("middle_bowl_econ", "middle_bowl_wkts_po"),
-        "death":  ("death_bowl_econ",  "death_bowl_wkts_po"),
+        "pp":     ("pp_bowl_econ",     "pp_bowl_wkts",     "pp_bowl_wkts_po"),
+        "middle": ("middle_bowl_econ", "middle_bowl_wkts", "middle_bowl_wkts_po"),
+        "death":  ("death_bowl_econ",  "death_bowl_wkts",  "death_bowl_wkts_po"),
     }
     bowl_composite = {}
-    for phase_key, (econ_col, wpo_col) in bowl_phase_map.items():
+    for phase_key, (econ_col, wkts_col, wpo_col) in bowl_phase_map.items():
         econ_norm = _minmax_norm(df[econ_col], invert=True) if econ_col in df.columns else pd.Series(0.0, index=df.index)
+        wkts_norm = _minmax_norm(df[wkts_col])              if wkts_col in df.columns else pd.Series(0.0, index=df.index)
         wpo_norm  = _minmax_norm(df[wpo_col])               if wpo_col  in df.columns else pd.Series(0.0, index=df.index)
-        if wpo_col in df.columns:
-            bowl_composite[phase_key] = 0.5 * econ_norm + 0.5 * wpo_norm
+
+        if wkts_col in df.columns and wpo_col in df.columns:
+            # 0.3 economy + 0.5 raw wickets + 0.2 wkts/over (tiebreaker)
+            bowl_composite[phase_key] = 0.3 * econ_norm + 0.5 * wkts_norm + 0.2 * wpo_norm
+        elif wkts_col in df.columns:
+            bowl_composite[phase_key] = 0.5 * econ_norm + 0.5 * wkts_norm
         else:
             bowl_composite[phase_key] = econ_norm
 

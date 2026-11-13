@@ -733,37 +733,44 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
                 mn, mx = s.min(), s.max()
                 return ((s - mn) / (mx - mn + 1e-6)).clip(0, 1)
 
-            bat_view["_ns"] = _norm(bat_view["SR"])
-            if "Runs" in bat_view.columns:
-                bat_view["_nr"] = _norm(bat_view["Runs"])
-                if "Average" in bat_view.columns:
-                    bat_view["_na"] = _norm(bat_view["Average"])
+            # Phase-prefix labels so it's clear these are phase-specific stats
+            ph_lbl = phase_key  # e.g. "Powerplay", "Middle", "Death"
+            sr_lbl  = f"{ph_lbl} SR"
+            run_lbl = f"{ph_lbl} Runs"
+            avg_lbl = f"{ph_lbl} Avg"
+            bat_view = bat_view.rename(columns={"SR": sr_lbl, "Runs": run_lbl, "Average": avg_lbl})
+
+            bat_view["_ns"] = _norm(bat_view[sr_lbl])
+            if run_lbl in bat_view.columns:
+                bat_view["_nr"] = _norm(bat_view[run_lbl])
+                if avg_lbl in bat_view.columns:
+                    bat_view["_na"] = _norm(bat_view[avg_lbl])
                     bat_view["Composite"] = (0.4*bat_view["_ns"] + 0.3*bat_view["_nr"] + 0.3*bat_view["_na"]).round(3)
                 else:
                     bat_view["Composite"] = (0.6*bat_view["_ns"] + 0.4*bat_view["_nr"]).round(3)
             else:
                 bat_view["Composite"] = bat_view["_ns"].round(3)
 
-            keep = ["Player Name", "Role"] + [c for c in ["SR", "Runs", "Average", "Composite"] if c in bat_view.columns]
+            keep = ["Player Name", "Role"] + [c for c in [sr_lbl, run_lbl, avg_lbl, "Composite"] if c in bat_view.columns]
             bat_top = bat_view[keep].sort_values("Composite", ascending=False).head(15).reset_index(drop=True)
             bat_top.index += 1
 
             if not bat_top.empty:
                 fig_bat = px.bar(
                     bat_top.head(10), x="Player Name", y="Composite", color="Role",
-                    title=f"Top 10 — {phase_select} Batting Composite (SR + Runs + Avg)",
+                    title=f"Top 10 — {phase_select} Batting (SR + Runs + Avg)",
                     text_auto=".3f", color_discrete_sequence=px.colors.qualitative.Pastel,
                 )
                 fig_bat.update_layout(xaxis_tickangle=-35, paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"))
                 st.plotly_chart(fig_bat, use_container_width=True, key=f"phase_bat_bar_{phase_key}")
-                for c, fmt in [("SR","%.1f"),("Runs","%.1f"),("Average","%.2f")]:
-                    if c in bat_top.columns:
-                        bat_top[c] = bat_top[c].round(2)
+                for c in [sr_lbl, run_lbl]:
+                    if c in bat_top.columns: bat_top[c] = bat_top[c].round(1)
+                if avg_lbl in bat_top.columns: bat_top[avg_lbl] = bat_top[avg_lbl].round(2)
                 col_cfg_bat = {
-                    "SR":        st.column_config.NumberColumn("SR",      format="%.1f"),
-                    "Runs":      st.column_config.NumberColumn("Runs",    format="%.1f"),
-                    "Average":   st.column_config.NumberColumn("Average", format="%.2f"),
-                    "Composite": st.column_config.NumberColumn("Score",   format="%.3f"),
+                    sr_lbl:      st.column_config.NumberColumn(sr_lbl,  format="%.1f"),
+                    run_lbl:     st.column_config.NumberColumn(run_lbl, format="%.1f"),
+                    avg_lbl:     st.column_config.NumberColumn(avg_lbl, format="%.2f"),
+                    "Composite": st.column_config.NumberColumn("Score", format="%.3f"),
                 }
                 st.dataframe(bat_top, use_container_width=True, height=350, hide_index=False, column_config=col_cfg_bat)
             else:
@@ -788,12 +795,18 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
 
             ec_max = bowl_view["Economy"].max(); ec_min = bowl_view["Economy"].min()
             bowl_view["_norm_econ"] = ((ec_max - bowl_view["Economy"]) / (ec_max - ec_min + 1e-6)).clip(0, 1)
+            if "Wkts (Total)" in bowl_view.columns:
+                wk_max = bowl_view["Wkts (Total)"].max(); wk_min = bowl_view["Wkts (Total)"].min()
+                bowl_view["_norm_wkts"] = ((bowl_view["Wkts (Total)"] - wk_min) / (wk_max - wk_min + 1e-6)).clip(0, 1)
+            else:
+                bowl_view["_norm_wkts"] = 0.0
             if "Wkts/Over" in bowl_view.columns:
                 wp_max = bowl_view["Wkts/Over"].max(); wp_min = bowl_view["Wkts/Over"].min()
                 bowl_view["_norm_wpo"] = ((bowl_view["Wkts/Over"] - wp_min) / (wp_max - wp_min + 1e-6)).clip(0, 1)
-                bowl_view["Composite"] = (0.5 * bowl_view["_norm_econ"] + 0.5 * bowl_view["_norm_wpo"]).round(3)
+                # 0.3 economy + 0.5 raw wickets (volume) + 0.2 wkts/over (tiebreaker)
+                bowl_view["Composite"] = (0.3 * bowl_view["_norm_econ"] + 0.5 * bowl_view["_norm_wkts"] + 0.2 * bowl_view["_norm_wpo"]).round(3)
             else:
-                bowl_view["Composite"] = bowl_view["_norm_econ"].round(3)
+                bowl_view["Composite"] = (0.5 * bowl_view["_norm_econ"] + 0.5 * bowl_view["_norm_wkts"]).round(3)
 
             keep_cols = ["Player Name", "Role", "Economy"] + (["Wkts/Over"] if "Wkts/Over" in bowl_view.columns else []) + (["Wkts (Total)"] if "Wkts (Total)" in bowl_view.columns else []) + ["Composite"]
             norm_drop = [c for c in ["_norm_econ", "_norm_wpo"] if c in bowl_view.columns]

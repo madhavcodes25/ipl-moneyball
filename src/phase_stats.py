@@ -47,7 +47,7 @@ PHASE_LABELS = ["Powerplay", "Middle", "Death"]
 
 # Minimum ball thresholds — below these the sample is too small to trust
 MIN_BAT_BALLS: dict[str, int] = {"Powerplay": 30, "Middle": 20, "Death": 15}
-MIN_BOWL_BALLS: dict[str, int] = {"Powerplay": 12, "Middle": 18, "Death": 12}
+MIN_BOWL_BALLS: dict[str, int] = {"Powerplay": 24, "Middle": 30, "Death": 24}
 
 # Pakistani player exclusion list (applied defensively)
 PAKISTANI_PLAYERS = {
