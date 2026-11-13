@@ -678,35 +678,34 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
     """
     Renders the Phase Analysis tab showing Powerplay / Middle / Death specialist stats.
 
-    Uses the phase stats derived from IPL 2022-2026 ball-by-ball data (RR Hackathon dataset)
-    with recency-weighted multi-year averages.  Players without ball-by-ball data are
-    excluded from this view but remain available in the optimizer.
+    Batting specialists ranked by composite: 0.6 × SR + 0.4 × Boundary%.
+    Bowling specialists ranked by composite: 0.5 × (inv Economy) + 0.5 × Wickets/Over.
     """
     st.subheader("⚡ Phase Specialist Analysis")
     st.caption(
         "Ball-by-ball stats from **IPL 2022–2026** (RR Hackathon data) with recency-weighted averages. "
-        "Only players with sufficient deliveries in a phase are shown."
+        "**Bat score** = SR + Boundary%  ·  **Bowl score** = Economy + Wickets/Over."
     )
 
-    # Phase stat columns
-    BAT_SR_COLS  = {"Powerplay": "pp_bat_sr",  "Middle": "middle_bat_sr",  "Death": "death_bat_sr"}
-    BOWL_EC_COLS = {"Powerplay": "pp_bowl_econ", "Middle": "middle_bowl_econ", "Death": "death_bowl_econ"}
-    BOWL_WK_COLS = {"Powerplay": "pp_bowl_wkts", "Middle": "middle_bowl_wkts", "Death": "death_bowl_wkts"}
+    BAT_SR_COLS    = {"Powerplay": "pp_bat_sr",          "Middle": "middle_bat_sr",         "Death": "death_bat_sr"}
+    BAT_BPCT_COLS  = {"Powerplay": "pp_bat_boundary_pct","Middle": "middle_bat_boundary_pct","Death": "death_bat_boundary_pct"}
+    BOWL_EC_COLS   = {"Powerplay": "pp_bowl_econ",        "Middle": "middle_bowl_econ",       "Death": "death_bowl_econ"}
+    BOWL_WPO_COLS  = {"Powerplay": "pp_bowl_wkts_po",     "Middle": "middle_bowl_wkts_po",    "Death": "death_bowl_wkts_po"}
+    BOWL_WK_COLS   = {"Powerplay": "pp_bowl_wkts",        "Middle": "middle_bowl_wkts",       "Death": "death_bowl_wkts"}
 
-    # Check if phase data is available
     phase_available = any(col in scored_data.columns for col in BAT_SR_COLS.values())
     if not phase_available:
         st.warning("Phase data not available. Ensure the RR Hackathon data is present in `data/RR-Hackathon-Data/`.")
         return
 
-    # Build a phase-enriched view
-    phase_df = scored_data[["Player Name", "Role", "Cost_Cr"] +
-                            [c for c in list(BAT_SR_COLS.values()) + list(BOWL_EC_COLS.values()) +
-                             list(BOWL_WK_COLS.values()) if c in scored_data.columns]].copy()
+    all_phase_cols = (
+        list(BAT_SR_COLS.values()) + list(BAT_BPCT_COLS.values()) +
+        list(BOWL_EC_COLS.values()) + list(BOWL_WPO_COLS.values()) + list(BOWL_WK_COLS.values())
+    )
+    phase_df = scored_data[
+        ["Player Name", "Role", "Cost_Cr"] + [c for c in all_phase_cols if c in scored_data.columns]
+    ].copy()
 
-    # ----------------------------------------------------------------
-    # Phase Selector
-    # ----------------------------------------------------------------
     phase_select = st.radio(
         "Select Phase",
         ["Powerplay (Overs 1–6)", "Middle Overs (7–15)", "Death Overs (16–20)"],
@@ -716,102 +715,112 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
     phase_key = "Powerplay" if "Powerplay" in phase_select else ("Middle" if "Middle" in phase_select else "Death")
 
     st.divider()
-
     col_bat, col_bowl = st.columns(2)
 
-    # ----------------------------------------------------------------
-    # Batting Specialists
-    # ----------------------------------------------------------------
+    # ---- Batting Specialists: SR + Boundary% composite ----
     with col_bat:
-        bat_col = BAT_SR_COLS[phase_key]
+        bat_col  = BAT_SR_COLS[phase_key]
+        bpct_col = BAT_BPCT_COLS[phase_key]
         st.markdown(f"### 🏏 {phase_select} Batting Specialists")
+        st.caption("Score = **0.6 × SR** + **0.4 × Boundary%** — rewards aggression AND boundary-hitting ability.")
         if bat_col in phase_df.columns:
-            bat_top = (
-                phase_df[phase_df[bat_col].notna()]
-                [["Player Name", "Role", bat_col]]
-                .rename(columns={bat_col: "Strike Rate"})
-                .sort_values("Strike Rate", ascending=False)
-                .head(15)
-                .reset_index(drop=True)
-            )
+            bat_view = phase_df[phase_df[bat_col].notna()].copy()
+            bat_view = bat_view.rename(columns={bat_col: "Strike Rate"})
+            if bpct_col in bat_view.columns:
+                bat_view = bat_view.rename(columns={bpct_col: "Boundary%"})
+
+            sr_max = bat_view["Strike Rate"].max(); sr_min = bat_view["Strike Rate"].min()
+            bat_view["_norm_sr"] = ((bat_view["Strike Rate"] - sr_min) / (sr_max - sr_min + 1e-6)).clip(0, 1)
+            if "Boundary%" in bat_view.columns:
+                bp_max = bat_view["Boundary%"].max(); bp_min = bat_view["Boundary%"].min()
+                bat_view["_norm_bp"] = ((bat_view["Boundary%"] - bp_min) / (bp_max - bp_min + 1e-6)).clip(0, 1)
+                bat_view["Composite"] = (0.6 * bat_view["_norm_sr"] + 0.4 * bat_view["_norm_bp"]).round(3)
+            else:
+                bat_view["Composite"] = bat_view["_norm_sr"].round(3)
+
+            drop_cols = [c for c in ["_norm_sr", "_norm_bp"] if c in bat_view.columns]
+            keep_cols = ["Player Name", "Role", "Strike Rate"] + (["Boundary%"] if "Boundary%" in bat_view.columns else []) + ["Composite"]
+            bat_top = bat_view[keep_cols].drop(columns=drop_cols, errors="ignore").sort_values("Composite", ascending=False).head(15).reset_index(drop=True)
             bat_top.index += 1
+
             if not bat_top.empty:
                 fig_bat = px.bar(
-                    bat_top.head(10),
-                    x="Player Name",
-                    y="Strike Rate",
-                    color="Role",
-                    title=f"Top 10 — {phase_select} Strike Rate",
-                    text_auto=".1f",
-                    color_discrete_sequence=px.colors.qualitative.Pastel,
+                    bat_top.head(10), x="Player Name", y="Composite", color="Role",
+                    title=f"Top 10 — {phase_select} Batting Composite",
+                    text_auto=".3f", color_discrete_sequence=px.colors.qualitative.Pastel,
                 )
-                fig_bat.update_layout(
-                    xaxis_tickangle=-35,
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    font=dict(color="white"),
-                    showlegend=True,
-                )
+                fig_bat.update_layout(xaxis_tickangle=-35, paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"))
                 st.plotly_chart(fig_bat, use_container_width=True, key=f"phase_bat_bar_{phase_key}")
                 bat_top["Strike Rate"] = bat_top["Strike Rate"].round(1)
-                st.dataframe(bat_top, use_container_width=True, height=350, hide_index=False,
-                             column_config={"Strike Rate": st.column_config.NumberColumn("SR", format="%.1f")})
+                if "Boundary%" in bat_top.columns:
+                    bat_top["Boundary%"] = bat_top["Boundary%"].round(1)
+                col_cfg_bat = {
+                    "Strike Rate": st.column_config.NumberColumn("SR",         format="%.1f"),
+                    "Boundary%":   st.column_config.NumberColumn("Boundary%",  format="%.1f"),
+                    "Composite":   st.column_config.NumberColumn("Score",       format="%.3f"),
+                }
+                st.dataframe(bat_top, use_container_width=True, height=350, hide_index=False, column_config=col_cfg_bat)
             else:
                 st.info("No batting data available for this phase.")
         else:
             st.info("Batting phase data not loaded.")
 
-    # ----------------------------------------------------------------
-    # Bowling Specialists
-    # ----------------------------------------------------------------
+    # ---- Bowling Specialists: Economy + Wkts/Over composite ----
     with col_bowl:
-        bowl_ec_col = BOWL_EC_COLS[phase_key]
-        bowl_wk_col = BOWL_WK_COLS.get(phase_key)
+        bowl_ec_col  = BOWL_EC_COLS[phase_key]
+        bowl_wpo_col = BOWL_WPO_COLS[phase_key]
+        bowl_wk_col  = BOWL_WK_COLS[phase_key]
         st.markdown(f"### 🎯 {phase_select} Bowling Specialists")
+        st.caption("Score = **0.5 × Economy** (inverted) + **0.5 × Wkts/Over** — rewards containment AND wicket-taking threat.")
         if bowl_ec_col in phase_df.columns:
-            bowl_df_view = phase_df[phase_df[bowl_ec_col].notna()][["Player Name", "Role", bowl_ec_col]].copy()
-            if bowl_wk_col and bowl_wk_col in phase_df.columns:
-                bowl_df_view = bowl_df_view.merge(
-                    phase_df[["Player Name", bowl_wk_col]].rename(columns={bowl_wk_col: "Wickets"}),
-                    on="Player Name", how="left"
-                )
-            bowl_top = (
-                bowl_df_view
-                .rename(columns={bowl_ec_col: "Economy"})
-                .sort_values("Economy", ascending=True)   # lower is better
-                .head(15)
-                .reset_index(drop=True)
-            )
+            bowl_view = phase_df[phase_df[bowl_ec_col].notna()].copy()
+            bowl_view = bowl_view.rename(columns={bowl_ec_col: "Economy"})
+            if bowl_wpo_col in bowl_view.columns:
+                bowl_view = bowl_view.rename(columns={bowl_wpo_col: "Wkts/Over"})
+            if bowl_wk_col in bowl_view.columns:
+                bowl_view = bowl_view.rename(columns={bowl_wk_col: "Wkts (Total)"})
+
+            ec_max = bowl_view["Economy"].max(); ec_min = bowl_view["Economy"].min()
+            bowl_view["_norm_econ"] = ((ec_max - bowl_view["Economy"]) / (ec_max - ec_min + 1e-6)).clip(0, 1)
+            if "Wkts/Over" in bowl_view.columns:
+                wp_max = bowl_view["Wkts/Over"].max(); wp_min = bowl_view["Wkts/Over"].min()
+                bowl_view["_norm_wpo"] = ((bowl_view["Wkts/Over"] - wp_min) / (wp_max - wp_min + 1e-6)).clip(0, 1)
+                bowl_view["Composite"] = (0.5 * bowl_view["_norm_econ"] + 0.5 * bowl_view["_norm_wpo"]).round(3)
+            else:
+                bowl_view["Composite"] = bowl_view["_norm_econ"].round(3)
+
+            keep_cols = ["Player Name", "Role", "Economy"] + (["Wkts/Over"] if "Wkts/Over" in bowl_view.columns else []) + (["Wkts (Total)"] if "Wkts (Total)" in bowl_view.columns else []) + ["Composite"]
+            norm_drop = [c for c in ["_norm_econ", "_norm_wpo"] if c in bowl_view.columns]
+            bowl_top = bowl_view[[c for c in keep_cols if c in bowl_view.columns]].sort_values("Composite", ascending=False).head(15).reset_index(drop=True)
             bowl_top.index += 1
+
             if not bowl_top.empty:
                 fig_bowl = px.bar(
-                    bowl_top.head(10),
-                    x="Player Name",
-                    y="Economy",
-                    color="Role",
-                    title=f"Top 10 — {phase_select} Economy (lower = better)",
-                    text_auto=".2f",
-                    color_discrete_sequence=px.colors.qualitative.Bold,
+                    bowl_top.head(10), x="Player Name", y="Composite", color="Role",
+                    title=f"Top 10 — {phase_select} Bowling Composite",
+                    text_auto=".3f", color_discrete_sequence=px.colors.qualitative.Bold,
                 )
-                fig_bowl.update_layout(
-                    xaxis_tickangle=-35,
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    font=dict(color="white"),
-                )
+                fig_bowl.update_layout(xaxis_tickangle=-35, paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"))
                 st.plotly_chart(fig_bowl, use_container_width=True, key=f"phase_bowl_bar_{phase_key}")
                 bowl_top["Economy"] = bowl_top["Economy"].round(2)
-                col_cfg = {"Economy": st.column_config.NumberColumn("Economy", format="%.2f")}
-                if "Wickets" in bowl_top.columns:
-                    bowl_top["Wickets"] = bowl_top["Wickets"].fillna(0).astype(int)
-                    col_cfg["Wickets"] = st.column_config.NumberColumn("Wkts", format="%d")
-                st.dataframe(bowl_top, use_container_width=True, height=350, hide_index=False,
-                             column_config=col_cfg)
+                col_cfg_bowl = {
+                    "Economy":     st.column_config.NumberColumn("Economy",    format="%.2f"),
+                    "Composite":   st.column_config.NumberColumn("Score",       format="%.3f"),
+                }
+                if "Wkts/Over" in bowl_top.columns:
+                    bowl_top["Wkts/Over"] = bowl_top["Wkts/Over"].round(3)
+                    col_cfg_bowl["Wkts/Over"] = st.column_config.NumberColumn("Wkts/Over", format="%.3f")
+                if "Wkts (Total)" in bowl_top.columns:
+                    bowl_top["Wkts (Total)"] = bowl_top["Wkts (Total)"].fillna(0).astype(int)
+                    col_cfg_bowl["Wkts (Total)"] = st.column_config.NumberColumn("Wkts", format="%d")
+                st.dataframe(bowl_top, use_container_width=True, height=350, hide_index=False, column_config=col_cfg_bowl)
             else:
                 st.info("No bowling data available for this phase.")
         else:
             st.info("Bowling phase data not loaded.")
 
     # ----------------------------------------------------------------
-    # Phase Heatmap — All Phases × Players (top 30 by Fantasy Score)
+    # Phase Heatmap
     # ----------------------------------------------------------------
     st.divider()
     st.markdown("### 🌡️ Phase Specialist Heatmap")
@@ -820,7 +829,7 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
     heatmap_tab_bat, heatmap_tab_bowl = st.tabs(["Batting SR", "Bowling Economy"])
 
     with heatmap_tab_bat:
-        bat_heat_cols = {k: v for k, v in BAT_SR_COLS.items() if v in scored_data.columns}
+        bat_heat_cols = {k: v for k, v in {"Powerplay": "pp_bat_sr", "Middle": "middle_bat_sr", "Death": "death_bat_sr"}.items() if v in scored_data.columns}
         if bat_heat_cols:
             heat_df = scored_data[["Player Name", "Fantasy_Score"] + list(bat_heat_cols.values())].copy()
             heat_df = heat_df.dropna(subset=list(bat_heat_cols.values()), how="all")
@@ -828,12 +837,9 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
             heat_matrix = heat_df.set_index("Player Name")[list(bat_heat_cols.values())]
             heat_matrix.columns = list(bat_heat_cols.keys())
             fig_heat_bat = px.imshow(
-                heat_matrix,
-                color_continuous_scale="YlOrRd",
+                heat_matrix, color_continuous_scale="YlOrRd",
                 title="Batting Strike Rate by Phase (Top 30 Players by Fantasy Score)",
-                labels=dict(color="Strike Rate"),
-                aspect="auto",
-                text_auto=".0f",
+                labels=dict(color="Strike Rate"), aspect="auto", text_auto=".0f",
             )
             fig_heat_bat.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"))
             st.plotly_chart(fig_heat_bat, use_container_width=True, key="phase_heatmap_bat")
@@ -841,21 +847,17 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
             st.info("Batting heatmap data not available.")
 
     with heatmap_tab_bowl:
-        bowl_heat_cols = {k: v for k, v in BOWL_EC_COLS.items() if v in scored_data.columns}
+        bowl_heat_cols = {k: v for k, v in {"Powerplay": "pp_bowl_econ", "Middle": "middle_bowl_econ", "Death": "death_bowl_econ"}.items() if v in scored_data.columns}
         if bowl_heat_cols:
             heat_df = scored_data[["Player Name", "Fantasy_Score"] + list(bowl_heat_cols.values())].copy()
             heat_df = heat_df.dropna(subset=list(bowl_heat_cols.values()), how="all")
             heat_df = heat_df.nlargest(30, "Fantasy_Score")
             heat_matrix = heat_df.set_index("Player Name")[list(bowl_heat_cols.values())]
             heat_matrix.columns = list(bowl_heat_cols.keys())
-            # Invert colorscale: lower economy = better (use Blues_r)
             fig_heat_bowl = px.imshow(
-                heat_matrix,
-                color_continuous_scale="Blues_r",
+                heat_matrix, color_continuous_scale="Blues_r",
                 title="Bowling Economy by Phase — lower = better (Top 30 Players)",
-                labels=dict(color="Economy"),
-                aspect="auto",
-                text_auto=".1f",
+                labels=dict(color="Economy"), aspect="auto", text_auto=".1f",
             )
             fig_heat_bowl.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"))
             st.plotly_chart(fig_heat_bowl, use_container_width=True, key="phase_heatmap_bowl")
@@ -863,41 +865,50 @@ def render_phase_analysis_tab(scored_data: pd.DataFrame):
             st.info("Bowling heatmap data not available.")
 
     # ----------------------------------------------------------------
-    # Quick Stats Summary
+    # All-Phase Summary Table
     # ----------------------------------------------------------------
     st.divider()
     st.markdown("### 📊 All-Phase Specialist Summary")
-    summary_cols = (
-        ["Player Name", "Role", "Cost_Cr"] +
-        [c for c in list(BAT_SR_COLS.values()) + list(BOWL_EC_COLS.values()) if c in scored_data.columns]
-    )
-    summary_df = scored_data[summary_cols].copy()
-    # Keep only players with at least one phase stat
-    phase_stat_cols = [c for c in list(BAT_SR_COLS.values()) + list(BOWL_EC_COLS.values()) if c in summary_df.columns]
-    summary_df = summary_df.dropna(subset=phase_stat_cols, how="all").copy()
+    summary_base_cols = ["Player Name", "Role", "Cost_Cr"]
+    phase_stat_candidates = [
+        "pp_bat_sr", "middle_bat_sr", "death_bat_sr",
+        "pp_bat_boundary_pct", "middle_bat_boundary_pct", "death_bat_boundary_pct",
+        "pp_bowl_econ", "middle_bowl_econ", "death_bowl_econ",
+        "pp_bowl_wkts_po", "middle_bowl_wkts_po", "death_bowl_wkts_po",
+    ]
+    present_phase_cols = [c for c in phase_stat_candidates if c in scored_data.columns]
+    summary_df = scored_data[summary_base_cols + present_phase_cols].copy()
+    summary_df = summary_df.dropna(subset=present_phase_cols, how="all").copy()
 
     rename_map = {
         "Cost_Cr": "Price (Cr)",
         "pp_bat_sr": "PP SR", "middle_bat_sr": "Mid SR", "death_bat_sr": "Death SR",
+        "pp_bat_boundary_pct": "PP Bdry%", "middle_bat_boundary_pct": "Mid Bdry%", "death_bat_boundary_pct": "Death Bdry%",
         "pp_bowl_econ": "PP Econ", "middle_bowl_econ": "Mid Econ", "death_bowl_econ": "Death Econ",
+        "pp_bowl_wkts_po": "PP W/Over", "middle_bowl_wkts_po": "Mid W/Over", "death_bowl_wkts_po": "Death W/Over",
     }
     summary_df = summary_df.rename(columns={k: v for k, v in rename_map.items() if k in summary_df.columns})
-    summary_df = summary_df.sort_values("PP SR" if "PP SR" in summary_df.columns else summary_df.columns[0],
-                                        ascending=False, na_position="last").reset_index(drop=True)
+    sort_col = "PP SR" if "PP SR" in summary_df.columns else summary_df.columns[2]
+    summary_df = summary_df.sort_values(sort_col, ascending=False, na_position="last").reset_index(drop=True)
     summary_df.index += 1
 
-    # Round everything
     for col in summary_df.select_dtypes(include="number").columns:
         summary_df[col] = summary_df[col].round(2)
 
     summary_col_cfg = {
-        "Price (Cr)": st.column_config.NumberColumn("Price (Cr)", format="₹%.2f Cr"),
-        "PP SR": st.column_config.NumberColumn("PP SR", format="%.1f"),
-        "Mid SR": st.column_config.NumberColumn("Mid SR", format="%.1f"),
-        "Death SR": st.column_config.NumberColumn("Death SR", format="%.1f"),
-        "PP Econ": st.column_config.NumberColumn("PP Econ", format="%.2f"),
-        "Mid Econ": st.column_config.NumberColumn("Mid Econ", format="%.2f"),
-        "Death Econ": st.column_config.NumberColumn("Death Econ", format="%.2f"),
+        "Price (Cr)":   st.column_config.NumberColumn("Price (Cr)", format="₹%.2f Cr"),
+        "PP SR":        st.column_config.NumberColumn("PP SR",       format="%.1f"),
+        "Mid SR":       st.column_config.NumberColumn("Mid SR",      format="%.1f"),
+        "Death SR":     st.column_config.NumberColumn("Death SR",    format="%.1f"),
+        "PP Bdry%":     st.column_config.NumberColumn("PP Bdry%",    format="%.1f"),
+        "Mid Bdry%":    st.column_config.NumberColumn("Mid Bdry%",   format="%.1f"),
+        "Death Bdry%":  st.column_config.NumberColumn("Death Bdry%", format="%.1f"),
+        "PP Econ":      st.column_config.NumberColumn("PP Econ",     format="%.2f"),
+        "Mid Econ":     st.column_config.NumberColumn("Mid Econ",    format="%.2f"),
+        "Death Econ":   st.column_config.NumberColumn("Death Econ",  format="%.2f"),
+        "PP W/Over":    st.column_config.NumberColumn("PP W/Over",   format="%.3f"),
+        "Mid W/Over":   st.column_config.NumberColumn("Mid W/Over",  format="%.3f"),
+        "Death W/Over": st.column_config.NumberColumn("Death W/Over",format="%.3f"),
     }
     st.dataframe(summary_df, use_container_width=True, height=400, column_config=summary_col_cfg)
     st.caption(f"Showing {len(summary_df)} players with phase data. Sorted by Powerplay SR descending.")
@@ -918,7 +929,6 @@ def main():
     )
     st.divider()
 
-    # Score data once and share across all tabs (avoids double calculation)
     scored_data = get_scored_data(params["role_focus"])
 
     tab_optimizer, tab_market, tab_scout, tab_phase = st.tabs([

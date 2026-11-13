@@ -78,61 +78,80 @@ def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
     ).fillna(0)
 
     # --- PHASE SPECIALIST BONUS ---
-    # Normalise each phase metric (SR: higher better; Economy: lower better → invert).
-    # Only computed for players with real ball-by-ball data; others get NaN → 0.
-    phase_bat_cols  = ['pp_bat_sr', 'middle_bat_sr', 'death_bat_sr']
-    phase_bowl_cols = ['pp_bowl_econ', 'middle_bowl_econ', 'death_bowl_econ']
+    # Composite specialist scores per phase:
+    #   Batting  = 0.6 × norm(SR)  + 0.4 × norm(boundary_pct)
+    #   Bowling  = 0.5 × norm(inv_economy) + 0.5 × norm(wkts_per_over)
+    #
+    # This captures both aggression (SR) + explosiveness (boundary%) for batters,
+    # and containment (economy) + wicket-taking threat (wkts/over) for bowlers.
+    # Only players with real ball-by-ball data get non-zero phase scores.
 
-    phase_parts = []
+    def _minmax_norm(series: pd.Series, invert: bool = False) -> pd.Series:
+        """Min-max normalize a series to [0,1]; invert for 'lower is better' metrics."""
+        valid = series.dropna()
+        if len(valid) < 2:
+            return pd.Series(0.0, index=series.index)
+        mn, mx = valid.min(), valid.max()
+        if invert:
+            normed = ((mx - series) / (mx - mn + 1e-6)).clip(0, 1)
+        else:
+            normed = ((series - mn) / (mx - mn + 1e-6)).clip(0, 1)
+        return normed.fillna(0)
 
-    for col in phase_bat_cols:
-        if col in df.columns:
-            series = df[col].copy()
-            valid = series.dropna()
-            if len(valid) > 1:
-                mn, mx = valid.min(), valid.max()
-                norm = ((series - mn) / (mx - mn + 1e-6)).clip(0, 1).fillna(0)
-            else:
-                norm = pd.Series(0.0, index=df.index)
-            phase_parts.append(norm)
+    # --- Batting composite per phase ---
+    bat_phase_map = {
+        "pp":     ("pp_bat_sr",     "pp_bat_boundary_pct"),
+        "middle": ("middle_bat_sr", "middle_bat_boundary_pct"),
+        "death":  ("death_bat_sr",  "death_bat_boundary_pct"),
+    }
+    bat_composite = {}
+    for phase_key, (sr_col, bpct_col) in bat_phase_map.items():
+        sr_norm   = _minmax_norm(df[sr_col])   if sr_col   in df.columns else pd.Series(0.0, index=df.index)
+        bpct_norm = _minmax_norm(df[bpct_col]) if bpct_col in df.columns else pd.Series(0.0, index=df.index)
+        # If boundary_pct column exists use composite; otherwise fall back to SR only
+        if bpct_col in df.columns:
+            bat_composite[phase_key] = (0.6 * sr_norm + 0.4 * bpct_norm)
+        else:
+            bat_composite[phase_key] = sr_norm
 
-    for col in phase_bowl_cols:
-        if col in df.columns:
-            series = df[col].copy()
-            valid = series.dropna()
-            if len(valid) > 1:
-                mn, mx = valid.min(), valid.max()
-                # Economy inverted: lower economy → higher score
-                norm = ((mx - series) / (mx - mn + 1e-6)).clip(0, 1).fillna(0)
-            else:
-                norm = pd.Series(0.0, index=df.index)
-            phase_parts.append(norm)
+    # --- Bowling composite per phase ---
+    bowl_phase_map = {
+        "pp":     ("pp_bowl_econ",     "pp_bowl_wkts_po"),
+        "middle": ("middle_bowl_econ", "middle_bowl_wkts_po"),
+        "death":  ("death_bowl_econ",  "death_bowl_wkts_po"),
+    }
+    bowl_composite = {}
+    for phase_key, (econ_col, wpo_col) in bowl_phase_map.items():
+        econ_norm = _minmax_norm(df[econ_col], invert=True) if econ_col in df.columns else pd.Series(0.0, index=df.index)
+        wpo_norm  = _minmax_norm(df[wpo_col])               if wpo_col  in df.columns else pd.Series(0.0, index=df.index)
+        if wpo_col in df.columns:
+            bowl_composite[phase_key] = (0.5 * econ_norm + 0.5 * wpo_norm)
+        else:
+            bowl_composite[phase_key] = econ_norm
 
-    if phase_parts:
-        # Average across all available phase norms (each has equal weight)
-        phase_matrix = pd.concat(phase_parts, axis=1)
-        df['Phase_Score'] = phase_matrix.mean(axis=1).fillna(0)
-    else:
-        df['Phase_Score'] = 0.0
+    # Phase_Score = average of all 6 composite phases (3 bat + 3 bowl)
+    all_composites = list(bat_composite.values()) + list(bowl_composite.values())
+    phase_matrix = pd.concat(all_composites, axis=1)
+    df["Phase_Score"] = phase_matrix.mean(axis=1).fillna(0)
 
     # Blend phase bonus into final score (weight 0.5 — nudges but doesn't dominate)
-    df['Fantasy_Score'] = (base_score + df['Phase_Score'] * 0.5).fillna(0)
+    df["Fantasy_Score"] = (base_score + df["Phase_Score"] * 0.5).fillna(0)
 
-    # --- SPECIALIST ROLE TAGS (top-quartile in each phase) ---
-    for col, tag in [
-        ('pp_bat_sr',   'pp_bat_specialist'),
-        ('death_bat_sr', 'death_bat_specialist'),
-        ('pp_bowl_econ', 'pp_bowl_specialist'),
-        ('death_bowl_econ', 'death_bowl_specialist'),
-    ]:
-        if col in df.columns and df[col].notna().any():
-            # For bowl_econ lower is better (bottom quartile = specialist)
-            if 'bowl' in col:
-                threshold = df[col].quantile(0.25)
-                df[tag] = df[col].notna() & (df[col] <= threshold)
-            else:
-                threshold = df[col].quantile(0.75)
-                df[tag] = df[col].notna() & (df[col] >= threshold)
+    # --- SPECIALIST ROLE TAGS (top-quartile composite per phase) ---
+    # Batting: top 25% composite score = specialist
+    # Bowling: top 25% composite score = specialist (already higher is better in composite)
+    specialist_map = [
+        ("pp_bat_specialist",    bat_composite["pp"],     False),
+        ("death_bat_specialist", bat_composite["death"],  False),
+        ("pp_bowl_specialist",   bowl_composite["pp"],    False),
+        ("death_bowl_specialist",bowl_composite["death"], False),
+    ]
+    for tag, composite_series, _ in specialist_map:
+        # Only label players who have actual data (composite > 0)
+        has_data = composite_series > 0
+        if has_data.any():
+            threshold = composite_series[has_data].quantile(0.75)
+            df[tag] = has_data & (composite_series >= threshold)
         else:
             df[tag] = False
 

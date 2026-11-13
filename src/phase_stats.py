@@ -150,18 +150,25 @@ def _compute_batting_phase_stats(ipl: pd.DataFrame) -> pd.DataFrame:
     Computes per-player, per-phase, per-season batting stats then collapses
     across seasons using recency-weighted averages.
 
+    Stats computed
+    --------------
+    - Strike Rate (SR): runs per 100 legal balls — primary aggression metric
+    - Boundary % (boundary_pct): (fours + sixes) per 100 legal balls — measures
+      explosive hitting ability independent of running between wickets
+
     Args:
         ipl: Filtered IPL ball-by-ball DataFrame with phase & season columns.
 
     Returns:
         Wide DataFrame indexed by player_name with columns:
         pp_bat_sr, middle_bat_sr, death_bat_sr,
+        pp_bat_boundary_pct, middle_bat_boundary_pct, death_bat_boundary_pct,
         pp_bat_balls, middle_bat_balls, death_bat_balls
     """
     # Legal deliveries only for batting SR (exclude wides from ball count)
     legal = ipl[~ipl["is_wide"]].copy()
 
-    # Per-player / per-phase / per-season aggregation
+    # Per-player / per-phase / per-season aggregation — include boundary counts
     agg = (
         legal.groupby(
             ["striker_name", "season", "phase"], observed=True
@@ -169,49 +176,56 @@ def _compute_batting_phase_stats(ipl: pd.DataFrame) -> pd.DataFrame:
         .agg(
             balls=("runs", "count"),
             runs=("runs", "sum"),
+            fours=("is_four", "sum"),
+            sixes=("is_six", "sum"),
         )
         .reset_index()
     )
 
-    agg["strike_rate"] = (agg["runs"] / agg["balls"] * 100).round(2)
-    agg["weight"] = agg["season"].map(SEASON_WEIGHTS).fillna(1)
+    agg["strike_rate"]    = (agg["runs"] / agg["balls"] * 100).round(2)
+    # Boundary % = (fours + sixes) per 100 balls — includes both 4s and 6s
+    agg["boundary_pct"]  = ((agg["fours"] + agg["sixes"]) / agg["balls"] * 100).round(2)
+    agg["weight"]         = agg["season"].map(SEASON_WEIGHTS).fillna(1)
 
     # Weighted collapse across seasons per player+phase
     records = []
     for (player, phase), grp in agg.groupby(["striker_name", "phase"], observed=True):
-        total_weighted_balls = (grp["balls"] * grp["weight"]).sum()
-        w_sr = _weighted_avg(grp, "strike_rate", "balls", "weight")
-        total_balls = grp["balls"].sum()
+        w_sr           = _weighted_avg(grp, "strike_rate",   "balls", "weight")
+        w_boundary_pct = _weighted_avg(grp, "boundary_pct",  "balls", "weight")
+        total_balls    = grp["balls"].sum()
         records.append({
-            "player_name": player,
-            "phase": phase,
-            "bat_sr": w_sr,
-            "bat_balls": total_balls,
-            "bat_weighted_balls": total_weighted_balls,
+            "player_name":    player,
+            "phase":          phase,
+            "bat_sr":         w_sr,
+            "bat_boundary_pct": w_boundary_pct,
+            "bat_balls":      total_balls,
         })
 
     phase_df = pd.DataFrame(records)
 
-    # Apply minimum ball thresholds
+    # Apply minimum ball thresholds — null out stats below threshold
     for phase_name, min_b in MIN_BAT_BALLS.items():
         mask = (phase_df["phase"] == phase_name) & (phase_df["bat_balls"] < min_b)
-        phase_df.loc[mask, "bat_sr"] = np.nan
+        phase_df.loc[mask, ["bat_sr", "bat_boundary_pct"]] = np.nan
 
     # Pivot to wide format
     wide = phase_df.pivot_table(
         index="player_name",
         columns="phase",
-        values=["bat_sr", "bat_balls"],
+        values=["bat_sr", "bat_boundary_pct", "bat_balls"],
         aggfunc="first",
     )
     wide.columns = [f"{col[1].lower()}_{col[0]}" for col in wide.columns]
     wide = wide.rename(columns={
-        "powerplay_bat_sr": "pp_bat_sr",
-        "middle_bat_sr": "middle_bat_sr",
-        "death_bat_sr": "death_bat_sr",
-        "powerplay_bat_balls": "pp_bat_balls",
-        "middle_bat_balls": "middle_bat_balls",
-        "death_bat_balls": "death_bat_balls",
+        "powerplay_bat_sr":           "pp_bat_sr",
+        "middle_bat_sr":              "middle_bat_sr",
+        "death_bat_sr":               "death_bat_sr",
+        "powerplay_bat_boundary_pct": "pp_bat_boundary_pct",
+        "middle_bat_boundary_pct":    "middle_bat_boundary_pct",
+        "death_bat_boundary_pct":     "death_bat_boundary_pct",
+        "powerplay_bat_balls":        "pp_bat_balls",
+        "middle_bat_balls":           "middle_bat_balls",
+        "death_bat_balls":            "death_bat_balls",
     })
     return wide.reset_index()
 
@@ -225,8 +239,16 @@ def _compute_bowling_phase_stats(ipl: pd.DataFrame) -> pd.DataFrame:
     Computes per-player, per-phase, per-season bowling stats then collapses
     across seasons using recency-weighted averages.
 
-    Economy is computed on all deliveries (wides count); wickets exclude
-    run-outs (attributed to the fielding side).
+    Stats computed
+    --------------
+    - Economy (bowl_econ): runs conceded per 6 balls — measures containment
+    - Wickets per Over (bowl_wkts_po): bowler-attributed wickets per 6 balls —
+      measures threat level independent of the economy. A death bowler who
+      gives 10 runs but takes 2 wickets in 2 overs is elite; economy alone
+      would punish them.
+
+    Economy is computed on all deliveries (wides count as balls + runs);
+    wickets exclude run-outs and 'obstructing the field' (attributed to fielder).
 
     Args:
         ipl: Filtered IPL ball-by-ball DataFrame with phase & season columns.
@@ -234,6 +256,7 @@ def _compute_bowling_phase_stats(ipl: pd.DataFrame) -> pd.DataFrame:
     Returns:
         Wide DataFrame indexed by player_name with columns:
         pp_bowl_econ, middle_bowl_econ, death_bowl_econ,
+        pp_bowl_wkts_po, middle_bowl_wkts_po, death_bowl_wkts_po,
         pp_bowl_wkts, middle_bowl_wkts, death_bowl_wkts,
         pp_bowl_balls, middle_bowl_balls, death_bowl_balls
     """
@@ -264,47 +287,54 @@ def _compute_bowling_phase_stats(ipl: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Economy = runs per 6 balls
-    agg["economy"] = ((agg["runs_conceded"] / agg["balls"]) * 6).round(3)
-    agg["weight"] = agg["season"].map(SEASON_WEIGHTS).fillna(1)
+    agg["economy"]      = ((agg["runs_conceded"] / agg["balls"]) * 6).round(3)
+    # Wickets per over = wickets per 6 balls (the bowling equivalent of SR)
+    agg["wkts_per_over"] = ((agg["wickets"] / agg["balls"]) * 6).round(4)
+    agg["weight"]        = agg["season"].map(SEASON_WEIGHTS).fillna(1)
 
     records = []
     for (player, phase), grp in agg.groupby(["bowler_name", "phase"], observed=True):
-        w_econ = _weighted_avg(grp, "economy", "balls", "weight")
+        w_econ     = _weighted_avg(grp, "economy",       "balls", "weight")
+        w_wkts_po  = _weighted_avg(grp, "wkts_per_over", "balls", "weight")
         total_balls = grp["balls"].sum()
-        total_wkts = grp["wickets"].sum()
+        total_wkts  = grp["wickets"].sum()
         records.append({
-            "player_name": player,
-            "phase": phase,
-            "bowl_econ": w_econ,
-            "bowl_wickets": total_wkts,
-            "bowl_balls": total_balls,
+            "player_name":   player,
+            "phase":         phase,
+            "bowl_econ":     w_econ,
+            "bowl_wkts_po":  w_wkts_po,   # wickets per over — the new composite metric
+            "bowl_wickets":  total_wkts,
+            "bowl_balls":    total_balls,
         })
 
     phase_df = pd.DataFrame(records)
 
-    # Apply minimum ball thresholds
+    # Apply minimum ball thresholds — null both economy AND wkts_per_over below threshold
     for phase_name, min_b in MIN_BOWL_BALLS.items():
         mask = (phase_df["phase"] == phase_name) & (phase_df["bowl_balls"] < min_b)
-        phase_df.loc[mask, "bowl_econ"] = np.nan
+        phase_df.loc[mask, ["bowl_econ", "bowl_wkts_po"]] = np.nan
 
     # Pivot to wide format
     wide = phase_df.pivot_table(
         index="player_name",
         columns="phase",
-        values=["bowl_econ", "bowl_wickets", "bowl_balls"],
+        values=["bowl_econ", "bowl_wkts_po", "bowl_wickets", "bowl_balls"],
         aggfunc="first",
     )
     wide.columns = [f"{col[1].lower()}_{col[0]}" for col in wide.columns]
     wide = wide.rename(columns={
-        "powerplay_bowl_econ": "pp_bowl_econ",
-        "middle_bowl_econ": "middle_bowl_econ",
-        "death_bowl_econ": "death_bowl_econ",
+        "powerplay_bowl_econ":    "pp_bowl_econ",
+        "middle_bowl_econ":       "middle_bowl_econ",
+        "death_bowl_econ":        "death_bowl_econ",
+        "powerplay_bowl_wkts_po": "pp_bowl_wkts_po",
+        "middle_bowl_wkts_po":    "middle_bowl_wkts_po",
+        "death_bowl_wkts_po":     "death_bowl_wkts_po",
         "powerplay_bowl_wickets": "pp_bowl_wkts",
-        "middle_bowl_wickets": "middle_bowl_wkts",
-        "death_bowl_wickets": "death_bowl_wkts",
-        "powerplay_bowl_balls": "pp_bowl_balls",
-        "middle_bowl_balls": "middle_bowl_balls",
-        "death_bowl_balls": "death_bowl_balls",
+        "middle_bowl_wickets":    "middle_bowl_wkts",
+        "death_bowl_wickets":     "death_bowl_wkts",
+        "powerplay_bowl_balls":   "pp_bowl_balls",
+        "middle_bowl_balls":      "middle_bowl_balls",
+        "death_bowl_balls":       "death_bowl_balls",
     })
     return wide.reset_index()
 
@@ -321,11 +351,13 @@ def load_phase_stats(data_dir: Path = _DATA_DIR) -> pd.DataFrame:
     Columns returned
     ----------------
     player_name,
-    pp_bat_sr, middle_bat_sr, death_bat_sr,         # batting strike rates
-    pp_bat_balls, middle_bat_balls, death_bat_balls, # balls faced (quality gate)
-    pp_bowl_econ, middle_bowl_econ, death_bowl_econ, # bowling economies
-    pp_bowl_wkts, middle_bowl_wkts, death_bowl_wkts, # wickets taken
-    pp_bowl_balls, middle_bowl_balls, death_bowl_balls
+    pp_bat_sr, middle_bat_sr, death_bat_sr,                         # batting strike rates
+    pp_bat_boundary_pct, middle_bat_boundary_pct, death_bat_boundary_pct,  # boundary % (4s+6s per 100 balls)
+    pp_bat_balls, middle_bat_balls, death_bat_balls,                 # balls faced (quality gate)
+    pp_bowl_econ, middle_bowl_econ, death_bowl_econ,                 # bowling economies
+    pp_bowl_wkts_po, middle_bowl_wkts_po, death_bowl_wkts_po,       # wickets per over (rate metric)
+    pp_bowl_wkts, middle_bowl_wkts, death_bowl_wkts,                 # raw wickets taken
+    pp_bowl_balls, middle_bowl_balls, death_bowl_balls               # balls bowled (quality gate)
 
     Args:
         data_dir: Path to RR-Hackathon-Data directory.
