@@ -3,7 +3,7 @@
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
 ![PuLP](https://img.shields.io/badge/Linear%20Programming-PuLP-orange)
-![Tests](https://img.shields.io/badge/Tests-38%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-42%20passing-brightgreen)
 
 > *"It's about getting things down to one number. Using the stats the way we read them, we'll find value in players that nobody else can see."* — Moneyball (2011)
 
@@ -88,6 +88,14 @@ Subject to the following constraints:
 | **Wicketkeeper** | $\sum_{i \in \text{WK}} x_i \ge 1$ | At least 1 designated wicketkeeper |
 | **Batting depth** | $\sum_{i \in \text{Bat/AllR}} x_i \ge 6$ | Minimum 6 recognized batting options |
 | **Bowling depth** | $\sum_{i \in \text{Bowl/AllR}} x_i \ge 5$ | Minimum 5 recognized bowling options |
+| **PP Bat Specialist** *(optional)* | $\sum_{i \in \text{PP Bat}} x_i \ge 1$ | At least 1 top-quartile Powerplay (overs 1–6) batter by SR |
+| **Death Bat Specialist** *(optional)* | $\sum_{i \in \text{Death Bat}} x_i \ge 1$ | At least 1 top-quartile Death Overs (16–20) batter by SR |
+| **PP Bowl Specialist** *(optional)* | $\sum_{i \in \text{PP Bowl}} x_i \ge 1$ | At least 1 bottom-quartile Powerplay bowler by economy |
+| **Death Bowl Specialist** *(optional)* | $\sum_{i \in \text{Death Bowl}} x_i \ge 1$ | At least 1 bottom-quartile Death Overs bowler by economy |
+| **PP Bat Specialist** *(optional)* | $\sum_{i \in \text{PP Bat}} x_i \ge 1$ | At least 1 Powerplay batting specialist (top-quartile overs 1–6 SR) |
+| **Death Bat Specialist** *(optional)* | $\sum_{i \in \text{Death Bat}} x_i \ge 1$ | At least 1 Death Overs batting specialist (top-quartile overs 16–20 SR) |
+| **PP Bowl Specialist** *(optional)* | $\sum_{i \in \text{PP Bowl}} x_i \ge 1$ | At least 1 Powerplay bowling specialist (bottom-quartile overs 1–6 economy) |
+| **Death Bowl Specialist** *(optional)* | $\sum_{i \in \text{Death Bowl}} x_i \ge 1$ | At least 1 Death Overs bowling specialist (bottom-quartile overs 16–20 economy) |
 
 ---
 
@@ -197,13 +205,14 @@ Ball-by-ball specialist analysis using **IPL 2022–2026 data** with recency-wei
 ## 🧪 Test Coverage
 
 ```
-tests/test_optimizer.py  —  38 tests
+tests/test_optimizer.py  —  42 tests
 
 TestCalculateFantasy          (10)  score columns, non-negative, strategy weights, normalisation
 TestOptimizeTeam               (9)  11 players, budget, strict/flexible modes, inclusions/exclusions
 TestGetEfficientFrontier       (5)  non-empty, subset of pool, sorted, no dominated pairs
 TestLoadPhaseStats             (8)  DataFrame structure, Pakistani filter, SR/economy validity, no dupes
 TestCalculateFantasyWithPhase  (6)  Phase_Score column, specialist tags, non-negative, no NaN
+TestPhaseSpecialistConstraints (4)  LP constraints for PP bat/bowl, Death bowl, all 4 together
 ```
 
 ---

@@ -132,6 +132,38 @@ def render_sidebar(player_list, raw_data):
         )
         st.markdown("---")
 
+        with st.expander("⚡ Phase Specialist Requirements"):
+            st.caption(
+                "Force the optimizer to include at least one specialist for a specific game phase. "
+                "Only applies to players who have sufficient ball-by-ball data from IPL 2022–2026."
+            )
+            require_pp_bat = st.checkbox(
+                "🏏 Require Powerplay Bat Specialist",
+                value=False,
+                key="sidebar_require_pp_bat",
+                help="Ensures at least one player with an elite Powerplay (overs 1–6) strike rate is selected.",
+            )
+            require_death_bat = st.checkbox(
+                "💥 Require Death Bat Specialist",
+                value=False,
+                key="sidebar_require_death_bat",
+                help="Ensures at least one player with an elite Death Overs (16–20) strike rate is selected.",
+            )
+            require_pp_bowl = st.checkbox(
+                "🎯 Require Powerplay Bowl Specialist",
+                value=False,
+                key="sidebar_require_pp_bowl",
+                help="Ensures at least one bowler with an elite Powerplay economy is selected.",
+            )
+            require_death_bowl = st.checkbox(
+                "🔥 Require Death Bowl Specialist",
+                value=False,
+                key="sidebar_require_death_bowl",
+                help="Ensures at least one bowler with an elite Death Overs economy is selected.",
+            )
+
+        st.markdown("---")
+
         with st.expander("🛠️ Custom Expected Prices"):
             st.caption("Adjust expected prices for players in the auction pool.")
             available_for_custom_price = [
@@ -179,6 +211,10 @@ def render_sidebar(player_list, raw_data):
         retention_prices=retention_prices,
         custom_auction_prices=custom_auction_prices,
         generate_btn=generate_btn,
+        require_pp_bat=require_pp_bat,
+        require_death_bat=require_death_bat,
+        require_pp_bowl=require_pp_bowl,
+        require_death_bowl=require_death_bowl,
     )
 
 
@@ -465,6 +501,10 @@ def render_optimizer_tab(params: dict, scored_data: pd.DataFrame, raw_data: pd.D
             num_all_rounders=params["num_all_rounders"],
             num_pacers=params["num_pacers"],
             num_spinners=params["num_spinners"],
+            require_pp_bat_specialist=params.get("require_pp_bat", False),
+            require_death_bat_specialist=params.get("require_death_bat", False),
+            require_pp_bowl_specialist=params.get("require_pp_bowl", False),
+            require_death_bowl_specialist=params.get("require_death_bowl", False),
         )
 
     if optimal_squad is None or optimal_squad.empty:
@@ -489,6 +529,15 @@ def render_optimizer_tab(params: dict, scored_data: pd.DataFrame, raw_data: pd.D
     m3.metric("Funds Remaining", f"₹{budget - spent:.2f} Cr")
     m4.metric("Foreign Players", f"{n_foreign}/4")
     m5.metric("Avg Value Score", f"{avg_value:.3f}", help="Fantasy Score per ₹Cr — higher is more efficient.")
+
+    # Phase Specialist badges — show which constraints are active
+    active_badges = []
+    if params.get("require_pp_bat"):    active_badges.append("🏏 PP Bat Specialist")
+    if params.get("require_death_bat"): active_badges.append("💥 Death Bat Specialist")
+    if params.get("require_pp_bowl"):   active_badges.append("🎯 PP Bowl Specialist")
+    if params.get("require_death_bowl"):active_badges.append("🔥 Death Bowl Specialist")
+    if active_badges:
+        st.info(f"**Phase Constraints Active:** {' · '.join(active_badges)} — the optimizer guaranteed these roles are covered.")
 
     st.markdown("---")
 
@@ -559,10 +608,33 @@ def render_optimizer_tab(params: dict, scored_data: pd.DataFrame, raw_data: pd.D
         "Is_Foreign": "Overseas Player",
     }).copy()
 
+    # Build a "Phase Specialist" badge column from boolean tag columns
+    specialist_tag_map = {
+        "pp_bat_specialist":    "🏏PP",
+        "death_bat_specialist": "💥Death Bat",
+        "pp_bowl_specialist":   "🎯PP Bowl",
+        "death_bowl_specialist":"🔥Death Bowl",
+    }
+    badges = []
+    for _, row in display_squad.iterrows():
+        player_badges = [
+            label for col, label in specialist_tag_map.items()
+            if col in display_squad.columns and row.get(col) is True
+        ]
+        badges.append(", ".join(player_badges) if player_badges else "—")
+    display_squad["Phase Tags"] = badges
+
+    # Drop the raw boolean columns — replaced by the badge column
+    display_squad = display_squad.drop(
+        columns=[c for c in specialist_tag_map if c in display_squad.columns]
+    )
+
     # Format numeric columns cleanly so they don't display as 16.000000
     display_squad["Auction Price (Cr)"] = display_squad["Auction Price (Cr)"].round(2)
     display_squad["Fantasy Points"] = display_squad["Fantasy Points"].round(2)
     display_squad["Value Score"] = display_squad["Value Score"].round(3)
+    if "Phase_Score" in display_squad.columns:
+        display_squad["Phase_Score"] = display_squad["Phase_Score"].round(3)
 
     squad_column_config = {
         "Auction Price (Cr)": st.column_config.NumberColumn(

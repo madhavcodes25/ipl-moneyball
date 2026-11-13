@@ -368,3 +368,69 @@ class TestCalculateFantasyWithPhase:
     def test_no_nan_in_fantasy_scores_with_phase(self, pool_with_phase):
         result = calculate_fantasy(pool_with_phase)
         assert not result["Fantasy_Score"].isna().any()
+
+
+# ─────────────────────────────────────────────
+# Phase Specialist Constraint tests
+# ─────────────────────────────────────────────
+
+class TestPhaseSpecialistConstraints:
+    """Tests that require_*_specialist flags are enforced by the optimizer."""
+
+    @pytest.fixture
+    def pool_with_specialists(self, minimal_player_pool):
+        """
+        Augments the standard player pool with phase specialist boolean tags
+        so that specialist constraint tests can run without real ball-by-ball data.
+        """
+        df = minimal_player_pool.copy()
+        rng = np.random.default_rng(99)
+        n = len(df)
+        # Give random phase stats so calculate_fantasy can build specialist tags
+        df["pp_bat_sr"]    = rng.uniform(100, 200, n)
+        df["death_bat_sr"] = rng.uniform(110, 220, n)
+        df["pp_bowl_econ"] = rng.uniform(5, 10, n)
+        df["death_bowl_econ"] = rng.uniform(7, 14, n)
+        # Ensure at least some players get each tag
+        df["middle_bat_sr"]   = rng.uniform(90, 180, n)
+        df["middle_bowl_econ"]= rng.uniform(5, 11, n)
+        return calculate_fantasy(df)
+
+    def test_pp_bat_specialist_constraint_honoured(self, pool_with_specialists):
+        """At least one pp_bat_specialist must appear in the XI when flag is set."""
+        team, _ = optimize_team(
+            pool_with_specialists, budget=120.0,
+            require_pp_bat_specialist=True,
+        )
+        assert team is not None
+        assert "pp_bat_specialist" in team.columns
+        assert team["pp_bat_specialist"].any(), "No PP bat specialist in team despite constraint"
+
+    def test_death_bowl_specialist_constraint_honoured(self, pool_with_specialists):
+        """At least one death_bowl_specialist must appear in the XI when flag is set."""
+        team, _ = optimize_team(
+            pool_with_specialists, budget=120.0,
+            require_death_bowl_specialist=True,
+        )
+        assert team is not None
+        assert "death_bowl_specialist" in team.columns
+        assert team["death_bowl_specialist"].any(), "No death bowl specialist in team despite constraint"
+
+    def test_multiple_phase_constraints_simultaneously(self, pool_with_specialists):
+        """All four specialist constraints can be active together and still solve."""
+        team, score = optimize_team(
+            pool_with_specialists, budget=120.0,
+            require_pp_bat_specialist=True,
+            require_death_bat_specialist=True,
+            require_pp_bowl_specialist=True,
+            require_death_bowl_specialist=True,
+        )
+        assert team is not None, "Optimizer returned None with all 4 phase constraints active"
+        assert len(team) == 11
+        assert score > 0
+
+    def test_no_phase_constraints_still_works(self, pool_with_specialists):
+        """Disabling all phase constraints (default) keeps optimizer working normally."""
+        team, score = optimize_team(pool_with_specialists, budget=120.0)
+        assert team is not None
+        assert len(team) == 11

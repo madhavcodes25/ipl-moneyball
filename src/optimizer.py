@@ -201,14 +201,20 @@ def is_spinner(subrole_str):
     return any(keyword in s for keyword in ['spin', 'orthodox', 'leg', 'googly', 'carrom'])
 
 
-def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,must_exclude=None,retention_prices=None,custom_auction_prices=None,
-                  constraint_mode="Flexible (Auto-balance)", 
-                  num_batters=4, num_bowlers=4, num_all_rounders=2, 
-                  num_pacers=3, num_spinners=2):
+def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None, must_exclude=None,
+                  retention_prices=None, custom_auction_prices=None,
+                  constraint_mode="Flexible (Auto-balance)",
+                  num_batters=4, num_bowlers=4, num_all_rounders=2,
+                  num_pacers=3, num_spinners=2,
+                  require_pp_bat_specialist=False,
+                  require_death_bat_specialist=False,
+                  require_pp_bowl_specialist=False,
+                  require_death_bowl_specialist=False):
     """
     Uses Linear Programming (PuLP) to select the optimal 11-player team that maximizes Fantasy Score
-    while strictly adhering to budget, foreigner limits, and team composition rules.
-    
+    while strictly adhering to budget, foreigner limits, team composition rules, and optional
+    phase specialist requirements.
+
     Args:
         df (pd.DataFrame): DataFrame containing players, their costs, roles, and calculated Fantasy Scores.
         budget (float): Maximum allowed budget to spend on the 11 players.
@@ -223,7 +229,11 @@ def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,must_exc
         num_all_rounders (int): Exact number of all-rounders (used in Strict mode).
         num_pacers (int): Minimum number of pace bowlers (used in Strict mode).
         num_spinners (int): Minimum number of spin bowlers (used in Strict mode).
-        
+        require_pp_bat_specialist (bool): If True, force at least one Powerplay batting specialist in the XI.
+        require_death_bat_specialist (bool): If True, force at least one Death Overs batting specialist in the XI.
+        require_pp_bowl_specialist (bool): If True, force at least one Powerplay bowling specialist in the XI.
+        require_death_bowl_specialist (bool): If True, force at least one Death Overs bowling specialist in the XI.
+
     Returns:
         tuple: (Filtered pd.DataFrame of the selected 11 players, Maximum objective/fantasy value achieved)
     """
@@ -309,7 +319,29 @@ def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,must_exc
     for player in must_exclude:
         if player in player_vars:
             constraint_name = f"Force_Exclude_{player.replace(' ', '_').replace('-', '_')}"
-            prob += player_vars[player] == 0, constraint_name        
+            prob += player_vars[player] == 0, constraint_name
+
+    # PHASE SPECIALIST CONSTRAINTS
+    # For each active specialist requirement, sum the binary vars of qualifying players
+    # and enforce that at least one must be selected.
+    phase_constraints = [
+        (require_pp_bat_specialist,   'pp_bat_specialist',   "Min_1_PP_Bat_Specialist"),
+        (require_death_bat_specialist,'death_bat_specialist', "Min_1_Death_Bat_Specialist"),
+        (require_pp_bowl_specialist,  'pp_bowl_specialist',  "Min_1_PP_Bowl_Specialist"),
+        (require_death_bowl_specialist,'death_bowl_specialist',"Min_1_Death_Bowl_Specialist"),
+    ]
+    for active, col, constraint_name in phase_constraints:
+        if active and col in df.columns:
+            # Players flagged as specialists for this phase
+            specialist_players = df[df[col] == True]['Player Name'].tolist()
+            eligible = [p for p in specialist_players if p in player_vars]
+            if eligible:
+                prob += (
+                    pulp.lpSum([player_vars[p] for p in eligible]) >= 1,
+                    constraint_name,
+                )
+            else:
+                print(f"WARNING: {constraint_name} requested but no eligible specialists found in pool — constraint skipped.")
             
     # Execute the LP optimization calculation.
     # _get_solver() picks the best available solver on this machine (system CBC > bundled CBC > GLPK).
