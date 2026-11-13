@@ -231,7 +231,7 @@ where strategy weights adjust team focus:
 ### Stage 5: Moneyball Value Analytics & Pareto Efficient Frontier
 
 #### Price Resolution Hierarchy
-1. **IPL 2026 Auction & Retentions** (Dec 2025 Abu Dhabi auction): Verified real prices for 81 players (Pant ₹27.0 Cr, Shreyas Iyer ₹26.75 Cr, Green ₹25.2 Cr, Klaasen ₹23.0 Cr, Kohli ₹21.0 Cr, Bumrah ₹18.0 Cr, etc.).
+1. **IPL 2026 Auction & Retentions** (Dec 2025 Abu Dhabi auction & 2025–2027 active contracts): Verified real prices for 256 players (Pant ₹27.0 Cr, Shreyas Iyer ₹26.75 Cr, Green ₹25.2 Cr, Klaasen ₹23.0 Cr, Kohli ₹21.0 Cr, Bumrah ₹18.0 Cr, Cummins ₹18.0 Cr, etc.).
 2. **Legacy Auction History**: Previous IPL auction price if no 2026 auction record exists.
 3. **Role-Based Median Estimate**: Unsold or new overseas players receive the median price of their respective role.
 
@@ -330,7 +330,7 @@ IPL-Moneyball/
 ├── data/
 │   ├── raw/
 │   │   ├── IPL_Stats.csv                      # Legacy player stats (fallback only)
-│   │   └── IPL_2026_prices.csv                # IPL 2026 retention & auction prices (90 players)
+│   │   └── IPL_2026_prices.csv                # IPL 2026 retention & auction prices (300 players)
 │   ├── processed/
 │   │   └── bbb_derived_stats.csv              # 381 players — BBB-derived, recency-weighted
 │   └── RR-Hackathon-Data/

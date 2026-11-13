@@ -1028,7 +1028,7 @@ def main():
     with st.expander("ℹ️ Data Sources & Recency Methodology", expanded=False):
         c1, c2, c3 = st.columns(3)
         c1.metric("Player Pool", "381 players", "from IPL 2022–2026 BBB data")
-        c2.metric("Price Source", "IPL 2026 Auction", "81 players with 2026 prices")
+        c2.metric("Price Source", "IPL 2026 Auction", "256 players with 2026 prices")
         c3.metric("Stats Weighting", "2022→1 … 2026→5", "recent seasons weighted higher")
         st.markdown("""
 **Stats** (Runs, SR, Avg, Economy, Wickets) are **recency-weighted** across up to 5 seasons:
@@ -1043,9 +1043,9 @@ def main():
 
 This means a player's 2026 performance counts **5× more** than 2022 when computing their career stat.
 
-**Auction Prices**: taken from the most recent IPL auction on record for each player.  
-- **81 players** have verified **IPL 2026** prices (retentions + auction, Dec 2025).  
-- Remaining players get a **role-based median estimate** — their `Price Year` column will show `estimate`.
+**Auction Prices**: taken from the most recent IPL auction & active contract records for each player.  
+- **256 players** have verified **IPL 2026** prices (retentions, trades, 2026 mini-auction, and active multi-year contracts).  
+- Remaining historical players (2022–2024) retain their latest recorded auction price or role-based median estimate (`Price Year` shows `estimate`).
         """)
     st.divider()
 
