@@ -309,31 +309,58 @@ def generate_bbb_stats(
     merged["last_season"]      = merged[["last_bat_season", "last_bowl_season"]].max(axis=1)
 
     # -----------------------------------------------------------------------
-    # Cost_Cr and Is_Foreign from legacy data
+    # Cost_Cr, Is_Foreign, and price_year from legacy data
+    # Always use the most recent (latest IPL auction) price for each player.
+    # Fallback order:
+    #   1. Direct name match in IPL_Stats.csv (sorted by Year desc → latest auction)
+    #   2. Alias map (BBB_TO_OLD_NAME) for known name mismatches
+    #   3. Role+Subrole-based median of known prices (better than global median
+    #      — a WK batter commands more than a tail-end pacer)
     # -----------------------------------------------------------------------
     if old_csv.exists():
         old = pd.read_csv(old_csv)
-        old = old.sort_values("Year", ascending=False).drop_duplicates("Player Name", keep="first")
-        old_meta = old.set_index("Player Name")[["Cost_Cr", "Is_Foreign"]]
-        # Direct match first, then alias fallback
+        # Latest auction price per player (2025 mega-auction prices where available)
+        old_latest = old.sort_values("Year", ascending=False).drop_duplicates("Player Name", keep="first")
+        old_meta = old_latest.set_index("Player Name")[["Cost_Cr", "Is_Foreign", "Year"]]
+
         def _lookup_meta(bbb_name: str, col: str):
+            """Lookup with direct match first, alias fallback second."""
             if bbb_name in old_meta.index:
                 return old_meta.loc[bbb_name, col]
             alias = BBB_TO_OLD_NAME.get(bbb_name)
             if alias and alias in old_meta.index:
                 return old_meta.loc[alias, col]
             return np.nan
+
         merged["Cost_Cr"]    = merged["Player Name"].apply(lambda n: _lookup_meta(n, "Cost_Cr"))
         merged["Is_Foreign"] = merged["Player Name"].apply(lambda n: _lookup_meta(n, "Is_Foreign"))
+        merged["price_year"] = merged["Player Name"].apply(lambda n: _lookup_meta(n, "Year"))
     else:
         merged["Cost_Cr"]    = np.nan
         merged["Is_Foreign"] = 0
+        merged["price_year"] = np.nan
 
-    # Fill missing costs with a sensible default (median of known prices)
-    median_cost = merged["Cost_Cr"].median()
-    if pd.isna(median_cost):
-        median_cost = 2.0
-    merged["Cost_Cr"] = merged["Cost_Cr"].fillna(median_cost)
+    # Role+Subrole-based median fallback for players not in old CSV
+    # (much more accurate than a single global median)
+    role_subrole_medians = (
+        merged[merged["Cost_Cr"].notna()]
+        .groupby(["Role", "Subrole"])["Cost_Cr"]
+        .median()
+    )
+    global_median = merged["Cost_Cr"].median()
+    if pd.isna(global_median):
+        global_median = 2.0
+
+    def _fill_cost(row):
+        if pd.notna(row["Cost_Cr"]):
+            return row["Cost_Cr"]
+        key = (row["Role"], row["Subrole"])
+        if key in role_subrole_medians.index:
+            return role_subrole_medians[key]
+        return global_median
+
+    merged["Cost_Cr"]    = merged.apply(_fill_cost, axis=1)
+    merged["price_year"] = merged["price_year"].fillna("estimate")
     merged["Is_Foreign"] = merged["Is_Foreign"].fillna(0).astype(int)
 
     # -----------------------------------------------------------------------
@@ -345,7 +372,7 @@ def generate_bbb_stats(
 
     # Keep only relevant output columns
     out_cols = [
-        "Player Name", "Role", "Subrole", "Is_Foreign", "Cost_Cr",
+        "Player Name", "Role", "Subrole", "Is_Foreign", "Cost_Cr", "price_year",
         "Batting Runs", "Batting Average", "Batting Strike Rate",
         "Wickets", "Economy Rate", "Bowling Average",
         "seasons_played", "last_season",

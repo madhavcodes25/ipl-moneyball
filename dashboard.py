@@ -386,7 +386,8 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
     scout_df = scout_df[scout_df["Fantasy_Score"] >= min_score]
 
     display_cols = [
-        "Player Name", "Role", "Subrole", "Cost_Cr", "Is_Foreign",
+        "Player Name", "Role", "Subrole", "Cost_Cr", "price_year", "Is_Foreign",
+        "last_season", "seasons_played",
         "Batting Runs", "Batting Average", "Batting Strike Rate",
         "Wickets", "Economy Rate", "Fantasy_Score", "Value_Score",
     ]
@@ -402,7 +403,10 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
 
     scout_display = scout_display.rename(columns={
         "Cost_Cr": "Price (Cr)",
+        "price_year": "Price Year",
         "Is_Foreign": "Overseas",
+        "last_season": "Last IPL",
+        "seasons_played": "Seasons",
         "Fantasy_Score": "Fantasy Score",
         "Value_Score": "Value Score",
         "Batting Runs": "Runs",
@@ -430,7 +434,14 @@ def render_player_scout_tab(scored_data: pd.DataFrame):
         scout_display["Wickets"] = scout_display["Wickets"].fillna(0).astype(int)
 
     scout_column_config = {
-        "Price (Cr)": st.column_config.NumberColumn("Price (Cr)", format="₹%.2f Cr"),
+        "Price (Cr)": st.column_config.NumberColumn("Price (Cr)", format="₹%.2f Cr",
+            help="Auction price. See Price Year for which auction."),
+        "Price Year": st.column_config.TextColumn("Price Year",
+            help="IPL auction year the price comes from. 'estimate' = role-based median."),
+        "Last IPL": st.column_config.TextColumn("Last IPL",
+            help="Most recent IPL season the player featured in."),
+        "Seasons": st.column_config.NumberColumn("Seasons", format="%d",
+            help="Number of distinct IPL seasons (2022-2026) the player appeared in."),
         "Fantasy Score": st.column_config.NumberColumn("Fantasy Score", format="%.2f"),
         "Value Score": st.column_config.NumberColumn("Value Score", format="%.3f"),
         "Bat Avg": st.column_config.NumberColumn("Bat Avg", format="%.2f"),
@@ -606,6 +617,9 @@ def render_optimizer_tab(params: dict, scored_data: pd.DataFrame, raw_data: pd.D
         "Fantasy_Score": "Fantasy Points",
         "Value_Score": "Value Score",
         "Is_Foreign": "Overseas Player",
+        "price_year": "Price Year",
+        "last_season": "Last IPL",
+        "seasons_played": "Seasons",
     }).copy()
 
     # Build a "Phase Specialist" badge column from boolean tag columns
@@ -640,6 +654,7 @@ def render_optimizer_tab(params: dict, scored_data: pd.DataFrame, raw_data: pd.D
         "Auction Price (Cr)": st.column_config.NumberColumn(
             "Auction Price (Cr)",
             format="₹%.2f Cr",
+            help="IPL auction price. 'Price Year' column shows which auction; 'estimate' = role-based median.",
         ),
         "Fantasy Points": st.column_config.NumberColumn(
             "Fantasy Points",
@@ -648,6 +663,19 @@ def render_optimizer_tab(params: dict, scored_data: pd.DataFrame, raw_data: pd.D
         "Value Score": st.column_config.NumberColumn(
             "Value Score",
             format="%.3f",
+        ),
+        "Price Year": st.column_config.TextColumn(
+            "Price Year",
+            help="IPL auction year the price comes from. 'estimate' = no auction history → role-based median used.",
+        ),
+        "Last IPL": st.column_config.TextColumn(
+            "Last IPL",
+            help="Most recent IPL season the player appeared in.",
+        ),
+        "Seasons": st.column_config.NumberColumn(
+            "Seasons",
+            format="%d",
+            help="Number of distinct IPL seasons the player has featured in (2022-2026).",
         ),
     }
 
@@ -945,6 +973,29 @@ def main():
         "Applying **Linear Programming** and **Value Analytics** to find the most efficient IPL auction squad — "
         "inspired by the Moneyball philosophy of finding undervalued players through statistics."
     )
+
+    # Data-source transparency banner
+    with st.expander("ℹ️ Data Sources & Recency Methodology", expanded=False):
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Player Pool", "381 players", "from IPL 2022–2026 BBB data")
+        c2.metric("Price Source", "IPL 2025 Auction", "latest available per player")
+        c3.metric("Stats Weighting", "2022→1 … 2026→5", "recent seasons weighted higher")
+        st.markdown("""
+**Stats** (Runs, SR, Avg, Economy, Wickets) are **recency-weighted** across up to 5 seasons:
+
+| Season | Weight |
+|--------|--------|
+| 2022   | 1× |
+| 2023   | 2× |
+| 2024   | 3× |
+| 2025   | 4× |
+| 2026   | 5× |
+
+This means a player's 2026 performance counts **5× more** than 2022 when computing their career stat.
+
+**Auction Prices**: taken from the most recent IPL auction on record for each player (IPL 2025 mega-auction for 171 players).  
+Players with no auction history (new entrants, overseas players with no IPL record) get a **role-based median estimate** — their `Price Year` column will show `estimate`.
+        """)
     st.divider()
 
     scored_data = get_scored_data(params["role_focus"])

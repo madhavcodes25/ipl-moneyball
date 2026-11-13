@@ -390,10 +390,11 @@ def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None, must_ex
     selected = [p for p in player_names if player_vars[p].varValue == 1]
 
     # Create a clean DataFrame containing only the selected players and key columns, sorted by Fantasy Score
-    # Include Phase_Score and specialist tags if they exist in the scored DataFrame
+    # Include Phase_Score, specialist tags, and metadata (price_year, last_season, seasons_played)
     base_cols = ['Player Name', 'Role', 'Subrole', 'Cost_Cr', 'Is_Foreign', 'Fantasy_Score', 'Phase_Score', 'Value_Score']
+    meta_cols  = ['price_year', 'last_season', 'seasons_played']
     extra_cols = ['pp_bat_specialist', 'death_bat_specialist', 'pp_bowl_specialist', 'death_bowl_specialist']
-    output_cols = [c for c in base_cols + extra_cols if c in df.columns]
+    output_cols = [c for c in base_cols + meta_cols + extra_cols if c in df.columns]
     final_team_df = df[df['Player Name'].isin(selected)][output_cols].sort_values(
         by='Fantasy_Score', ascending=False
     ).copy()
