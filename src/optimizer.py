@@ -5,19 +5,31 @@ from typing import Optional
 
 def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
     """
-    Calculates a composite Fantasy Score for each player based on their historical statistics.
-    
+    Calculates a composite Fantasy Score for each player based on their historical statistics
+    plus phase-specialist bonuses (Powerplay / Middle / Death) derived from ball-by-ball data.
+
+    Phase Specialist Bonus
+    ----------------------
+    For players who have sufficient ball-by-ball data, an additional ``Phase_Score``
+    (0–1 normalised) is computed from their phase-specific strike rates and economies.
+    This is blended into the ``Fantasy_Score`` at a 0.5× weight so it nudges — but
+    does not dominate — the core stats-based score.  Specialist role tags are also
+    added as boolean columns:
+    ``pp_bat_specialist``, ``death_bat_specialist``,
+    ``pp_bowl_specialist``, ``death_bowl_specialist``.
+
     Args:
         df (pd.DataFrame): DataFrame containing player statistics.
         strategy (str): Weighting strategy for the score ("Balanced", "Batting Heavy", or "Bowling Heavy").
         min_runs (int): Minimum runs required to be considered a 'qualified' batter for normalization boundaries.
         min_wickets (int): Minimum wickets required to be considered a 'qualified' bowler for normalization boundaries.
-        
+
     Returns:
-        pd.DataFrame: The original DataFrame with normalized metric columns and the final 'Fantasy_Score'.
+        pd.DataFrame: The original DataFrame with normalized metric columns, the final 'Fantasy_Score',
+                      'Value_Score', 'Phase_Score', and specialist boolean columns.
     """
     print("Calculating Fantasy Ratings...")
-    
+
     # Determine the multipliers for batting and bowling metrics based on the chosen strategy
     bat_weight = 1.2 if strategy == "Batting Heavy" else (0.8 if strategy == "Bowling Heavy" else 1.0)
     bowl_weight = 1.2 if strategy == "Bowling Heavy" else (0.8 if strategy == "Batting Heavy" else 1.0)
@@ -33,59 +45,99 @@ def calculate_fantasy(df, strategy="Balanced", min_runs=100, min_wickets=5):
     # Normalize Batting Metrics
     for col in batting_metrics:
         if not qualified_bat.empty:
-            # Find the maximum and minimum values among qualified batters
             max_val = qualified_bat[col].max()
             min_val = qualified_bat[col].min()
-            
-            # Apply Min-Max scaling to map values between 0 and 1. 
-            # 1e-6 prevents division by zero. .clip(0, 1) ensures outliers don't exceed the [0, 1] bounds.
             df[f'norm_{col}'] = ((df[col] - min_val) / (max_val - min_val + 1e-6)).clip(0, 1)
-            
-            # Penalize the normalized strike rate and average for players with very few runs (< 30)
-            # to prevent tail-enders with inflated stats from getting high fantasy ratings.
+            # Penalize tail-enders with inflated stats from very few runs
             if col in ['Batting Strike Rate', 'Batting Average']:
                 df[f'norm_{col}'] = np.where(df['Batting Runs'] < 30, df[f'norm_{col}'] * 0.2, df[f'norm_{col}'])
         else:
-            # Fallback if no batters meet the qualification criteria
             df[f'norm_{col}'] = 0
 
     # Normalize Bowling Metric: Wickets
     if not qualified_bowl.empty:
-        # Get boundaries for wickets among qualified bowlers
         w_max, w_min = qualified_bowl['Wickets'].max(), qualified_bowl['Wickets'].min()
-        # Min-Max scaling for wickets (higher is better)
         df['norm_Wickets'] = ((df['Wickets'] - w_min) / (w_max - w_min + 1e-6)).clip(0, 1)
     else:
         df['norm_Wickets'] = 0
 
-    # Normalize Bowling Metrics: Economy Rate & Bowling Average
+    # Normalize Bowling Metrics: Economy Rate & Bowling Average (lower = better → invert)
     for col in ['Economy Rate', 'Bowling Average']:
         if not qualified_bowl.empty:
             max_val = qualified_bowl[col].max()
             min_val = qualified_bowl[col].min()
-
-            # For Economy and Average, lower values are better. 
-            # We invert the Min-Max formula: (max - current) / (max - min)
             df[f'norm_{col}'] = ((max_val - df[col]) / (max_val - min_val + 1e-6)).clip(0, 1)
-            
-            # Penalize the normalized economy and average for part-timers with very few wickets (< 2)
             df[f'norm_{col}'] = np.where(df['Wickets'] < 2, df[f'norm_{col}'] * 0.2, df[f'norm_{col}'])
         else:
             df[f'norm_{col}'] = 0
 
-    # Calculate the final aggregated Fantasy Score.
-    # Combines normalized stats multiplied by their relative importance factors (1.5 for primary stats, 0.75 for secondary)
-    # and scales them by the overall strategy weights.
-    df['Fantasy_Score'] = (
-        (df['norm_Batting Runs'] * 1.5 + df['norm_Batting Strike Rate'] * 0.75 + df['norm_Batting Average'] * 0.75) * bat_weight + 
+    # --- BASE FANTASY SCORE ---
+    base_score = (
+        (df['norm_Batting Runs'] * 1.5 + df['norm_Batting Strike Rate'] * 0.75 + df['norm_Batting Average'] * 0.75) * bat_weight +
         (df['norm_Wickets'] * 1.5 + df['norm_Economy Rate'] * 0.75 + df['norm_Bowling Average'] * 0.75) * bowl_weight
-    ).fillna(0) # Replace any potential NaN results with 0
+    ).fillna(0)
+
+    # --- PHASE SPECIALIST BONUS ---
+    # Normalise each phase metric (SR: higher better; Economy: lower better → invert).
+    # Only computed for players with real ball-by-ball data; others get NaN → 0.
+    phase_bat_cols  = ['pp_bat_sr', 'middle_bat_sr', 'death_bat_sr']
+    phase_bowl_cols = ['pp_bowl_econ', 'middle_bowl_econ', 'death_bowl_econ']
+
+    phase_parts = []
+
+    for col in phase_bat_cols:
+        if col in df.columns:
+            series = df[col].copy()
+            valid = series.dropna()
+            if len(valid) > 1:
+                mn, mx = valid.min(), valid.max()
+                norm = ((series - mn) / (mx - mn + 1e-6)).clip(0, 1).fillna(0)
+            else:
+                norm = pd.Series(0.0, index=df.index)
+            phase_parts.append(norm)
+
+    for col in phase_bowl_cols:
+        if col in df.columns:
+            series = df[col].copy()
+            valid = series.dropna()
+            if len(valid) > 1:
+                mn, mx = valid.min(), valid.max()
+                # Economy inverted: lower economy → higher score
+                norm = ((mx - series) / (mx - mn + 1e-6)).clip(0, 1).fillna(0)
+            else:
+                norm = pd.Series(0.0, index=df.index)
+            phase_parts.append(norm)
+
+    if phase_parts:
+        # Average across all available phase norms (each has equal weight)
+        phase_matrix = pd.concat(phase_parts, axis=1)
+        df['Phase_Score'] = phase_matrix.mean(axis=1).fillna(0)
+    else:
+        df['Phase_Score'] = 0.0
+
+    # Blend phase bonus into final score (weight 0.5 — nudges but doesn't dominate)
+    df['Fantasy_Score'] = (base_score + df['Phase_Score'] * 0.5).fillna(0)
+
+    # --- SPECIALIST ROLE TAGS (top-quartile in each phase) ---
+    for col, tag in [
+        ('pp_bat_sr',   'pp_bat_specialist'),
+        ('death_bat_sr', 'death_bat_specialist'),
+        ('pp_bowl_econ', 'pp_bowl_specialist'),
+        ('death_bowl_econ', 'death_bowl_specialist'),
+    ]:
+        if col in df.columns and df[col].notna().any():
+            # For bowl_econ lower is better (bottom quartile = specialist)
+            if 'bowl' in col:
+                threshold = df[col].quantile(0.25)
+                df[tag] = df[col].notna() & (df[col] <= threshold)
+            else:
+                threshold = df[col].quantile(0.75)
+                df[tag] = df[col].notna() & (df[col] >= threshold)
+        else:
+            df[tag] = False
 
     # --- VALUE SCORE (The Moneyball Metric) ---
     # Value Score = Fantasy performance per crore spent.
-    # This is the core Moneyball insight: find players who are statistically excellent
-    # but priced below their true output (undervalued), or identify who is overpaid.
-    # A player with a high Value Score gives you more bang for your buck at auction.
     df['Value_Score'] = np.where(
         df['Cost_Cr'] > 0,
         df['Fantasy_Score'] / df['Cost_Cr'],
@@ -276,9 +328,13 @@ def optimize_team(df, budget=100.0, max_foreigners=4, must_include=None,must_exc
     selected = [p for p in player_names if player_vars[p].varValue == 1]
 
     # Create a clean DataFrame containing only the selected players and key columns, sorted by Fantasy Score
-    final_team_df = df[df['Player Name'].isin(selected)][
-        ['Player Name', 'Role', 'Subrole', 'Cost_Cr', 'Is_Foreign', 'Fantasy_Score', 'Value_Score']
-    ].sort_values(by='Fantasy_Score', ascending=False).copy()
+    # Include Phase_Score and specialist tags if they exist in the scored DataFrame
+    base_cols = ['Player Name', 'Role', 'Subrole', 'Cost_Cr', 'Is_Foreign', 'Fantasy_Score', 'Phase_Score', 'Value_Score']
+    extra_cols = ['pp_bat_specialist', 'death_bat_specialist', 'pp_bowl_specialist', 'death_bowl_specialist']
+    output_cols = [c for c in base_cols + extra_cols if c in df.columns]
+    final_team_df = df[df['Player Name'].isin(selected)][output_cols].sort_values(
+        by='Fantasy_Score', ascending=False
+    ).copy()
     
     # Return the selected team DataFrame and the final total Fantasy Score
     return final_team_df, prob.objective.value()

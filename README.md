@@ -3,11 +3,11 @@
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
 ![PuLP](https://img.shields.io/badge/Linear%20Programming-PuLP-orange)
-![Tests](https://img.shields.io/badge/Tests-24%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-38%20passing-brightgreen)
 
 > *"It's about getting things down to one number. Using the stats the way we read them, we'll find value in players that nobody else can see."* — Moneyball (2011)
 
-A data-driven IPL team optimizer that applies **Linear Programming** and **Value Analytics** to identify undervalued players and construct the highest-performing squad within a given auction budget — inspired directly by the Moneyball philosophy.
+A data-driven IPL team optimizer that applies **Linear Programming**, **Value Analytics**, and **Phase Specialist Scoring** (Powerplay / Middle / Death overs) to identify undervalued players and construct the highest-performing squad within a given auction budget — inspired directly by the Moneyball philosophy.
 
 ---
 
@@ -30,12 +30,32 @@ Traditional IPL auction strategy is driven by reputation, hype, and gut feel. Th
 Each player's performance across batting and bowling is condensed into a single `Fantasy_Score` using **Min-Max normalization**:
 
 $$
-\text{Fantasy Score} = \Big(\text{Runs}_{\text{norm}} \times 1.5 + \text{SR}_{\text{norm}} \times 0.75 + \text{Avg}_{\text{norm}} \times 0.75\Big) \cdot w_{\text{bat}} + \Big(\text{Wkts}_{\text{norm}} \times 1.5 + \text{Econ}_{\text{norm}} \times 0.75 + \text{BowlAvg}_{\text{norm}} \times 0.75\Big) \cdot w_{\text{bowl}}
+\text{Fantasy Score} = \Big(\text{Runs}_{\text{norm}} \times 1.5 + \text{SR}_{\text{norm}} \times 0.75 + \text{Avg}_{\text{norm}} \times 0.75\Big) \cdot w_{\text{bat}} + \Big(\text{Wkts}_{\text{norm}} \times 1.5 + \text{Econ}_{\text{norm}} \times 0.75 + \text{BowlAvg}_{\text{norm}} \times 0.75\Big) \cdot w_{\text{bowl}} + \text{Phase Score} \times 0.5
 $$
 
-- All metrics are min-max scaled to $[0, 1]$ using only **qualified** players ($\ge 100$ runs or $\ge 5$ wickets) as boundaries — preventing tail-enders with inflated small-sample stats from gaming the score.
-- Players with fewer than 30 runs or 2 wickets have their secondary metrics penalized by 80% to further guard against sample noise.
+- All metrics are min-max scaled to $[0, 1]$ using only **qualified** players ($\ge 100$ runs or $\ge 5$ wickets) as boundaries.
+- Players with fewer than 30 runs or 2 wickets have their secondary metrics penalized by 80% to guard against small-sample noise.
 - Strategy weights: $w_{\text{bat}} = w_{\text{bowl}} = 1.0$ (Balanced), $1.2 / 0.8$ (Batting Heavy), $0.8 / 1.2$ (Bowling Heavy).
+
+### Step 1b: Phase Specialist Score (New)
+
+Using **ball-by-ball data from IPL 2022–2026** (87,687 deliveries across 5 seasons), each player receives phase-specific performance metrics with **recency-weighted multi-year averages**:
+
+$$
+\text{Weighted SR} = \frac{\sum_{s} \text{balls}_s \cdot \text{SR}_s \cdot w_s}{\sum_{s} \text{balls}_s \cdot w_s}
+$$
+
+where season weights are $w_{2022}=1,\ w_{2023}=2,\ w_{2024}=3,\ w_{2025}=4,\ w_{2026}=5$ — giving more recent seasons greater influence.
+
+| Phase | Overs | Batting metric | Bowling metric | Min balls (bat/bowl) |
+|---|---|---|---|---|
+| Powerplay | 1–6 | Strike Rate | Economy | 30 / 12 |
+| Middle | 7–15 | Strike Rate | Economy | 20 / 18 |
+| Death | 16–20 | Strike Rate | Economy | 15 / 12 |
+
+The `Phase_Score` is the average of all available phase norms (batting SR: higher = better; bowling economy: lower = better, inverted). It is blended into `Fantasy_Score` at a **0.5× weight** — it nudges but does not dominate the core stats-based score.
+
+**Specialist tags** (`pp_bat_specialist`, `death_bat_specialist`, `pp_bowl_specialist`, `death_bowl_specialist`) are assigned to players in the **top/bottom quartile** of their respective phase metric.
 
 ### Step 2: Value Score (The Moneyball Metric)
 
@@ -43,11 +63,11 @@ $$
 \text{Value Score} = \frac{\text{Fantasy Score}}{\text{Auction Price (Cr)}}
 $$
 
-This single number answers *"how much output do you get per crore spent?"* — the exact question Moneyball asks about baseball players. Players with a high Value Score but low absolute cost are the auction targets.
+This single number answers *"how much output do you get per crore spent?"* — the exact question Moneyball asks. Players with a high Value Score but low absolute cost are the auction targets.
 
 ### Step 3: Efficient Frontier
 
-For each player, we check whether any other player exists with **both a higher Fantasy Score and a lower cost**. If so, the player is *dominated* — they offer worse value on both dimensions. The remaining players form the **Pareto-optimal efficient frontier**: the rational picks at each price point.
+For each player, we check whether any other player exists with **both a higher Fantasy Score and a lower cost**. If so, the player is *dominated*. The remaining players form the **Pareto-optimal efficient frontier**: the rational picks at each price point.
 
 ### Step 4: Integer Linear Programming
 
@@ -80,7 +100,8 @@ Subject to the following constraints:
 | Optimization Engine | PuLP (CBC / GLPK solver) |
 | Web Dashboard | Streamlit |
 | Visualizations | Plotly Express, Plotly Graph Objects |
-| Testing | pytest — 23 unit tests |
+| Ball-by-ball Data | RR Hackathon Dataset (IPL 2022–2026) |
+| Testing | pytest — 38 unit tests |
 
 ---
 
@@ -89,15 +110,24 @@ Subject to the following constraints:
 ```text
 IPL-Moneyball/
 ├── data/
-│   └── raw/
-│       └── IPL_Stats.csv         # 2024–2025 IPL player performance stats
+│   ├── raw/
+│   │   └── IPL_Stats.csv                      # 2024–2025 IPL player stats & auction prices
+│   └── RR-Hackathon-Data/
+│       ├── ball_by_ball.csv                   # 200,999 ball-by-ball deliveries (all formats)
+│       ├── matches.csv                        # Match metadata with competition IDs
+│       ├── competitions.csv                   # Competition list (IPL comp IDs: 1358–3298)
+│       ├── teams.csv
+│       ├── playing_eleven.csv
+│       └── competition_team_player_mapping.csv
 ├── src/
-│   ├── data_cleaning.py          # Data loading, deduplication, type enforcement
-│   └── optimizer.py              # Fantasy scoring, LP model, efficient frontier
+│   ├── data_cleaning.py                       # Data loading, dedup, phase stats merge
+│   ├── optimizer.py                           # Fantasy scoring, Phase Score, LP model, frontier
+│   └── phase_stats.py                         # Phase specialist stats from ball-by-ball data
 ├── tests/
-│   └── test_optimizer.py         # 23 unit tests across 3 test classes
-├── dashboard.py                  # Streamlit multi-tab frontend
+│   └── test_optimizer.py                      # 38 unit tests across 5 test classes
+├── dashboard.py                               # Streamlit multi-tab frontend
 ├── requirements.txt
+├── packages.txt                               # System packages for Streamlit Cloud (coinor-cbc)
 └── README.md
 ```
 
@@ -154,16 +184,26 @@ The Moneyball view — an interactive scatter plot of every player's price vs. f
 ### 🔍 Player Scout
 Full searchable, filterable player database sorted by Value Score. Filter by role, nationality, and minimum fantasy score. Heatmap coloring on key metrics for quick comparison.
 
+### ⚡ Phase Analysis *(New)*
+Ball-by-ball specialist analysis using **IPL 2022–2026 data** with recency-weighted multi-year averages:
+- **Phase selector** — switch between Powerplay, Middle Overs, and Death Overs views
+- **Batting specialists** — ranked by phase-specific strike rate with minimum ball thresholds
+- **Bowling specialists** — ranked by phase-specific economy (lower = better)
+- **Phase heatmap** — multi-phase comparison grid for the top 30 players by Fantasy Score
+- **All-Phase summary table** — every player's PP / Mid / Death SR and economy in one view
+
 ---
 
 ## 🧪 Test Coverage
 
 ```
-tests/test_optimizer.py  —  24 tests
+tests/test_optimizer.py  —  38 tests
 
-TestCalculateFantasy      (10)  score columns exist, non-negative, strategy weights, normalisation bounds
-TestOptimizeTeam           (9)  11 players selected, budget respected, strict/flexible modes, inclusions/exclusions
-TestGetEfficientFrontier   (5)  non-empty, subset of pool, sorted by cost, no dominated pairs
+TestCalculateFantasy          (10)  score columns, non-negative, strategy weights, normalisation
+TestOptimizeTeam               (9)  11 players, budget, strict/flexible modes, inclusions/exclusions
+TestGetEfficientFrontier       (5)  non-empty, subset of pool, sorted, no dominated pairs
+TestLoadPhaseStats             (8)  DataFrame structure, Pakistani filter, SR/economy validity, no dupes
+TestCalculateFantasyWithPhase  (6)  Phase_Score column, specialist tags, non-negative, no NaN
 ```
 
 ---

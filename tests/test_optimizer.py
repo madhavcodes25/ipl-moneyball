@@ -15,6 +15,7 @@ from unittest.mock import patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.optimizer import calculate_fantasy, optimize_team, get_efficient_frontier
+from src.phase_stats import load_phase_stats, PAKISTANI_PLAYERS, IPL_COMP_IDS
 
 
 # ─────────────────────────────────────────────
@@ -257,3 +258,113 @@ class TestGetEfficientFrontier:
                         f"Player '{b['Player Name']}' dominates '{a['Player Name']}' "
                         f"but both are on the frontier."
                     )
+
+
+# ─────────────────────────────────────────────
+# Phase Specialist Stats tests
+# ─────────────────────────────────────────────
+
+class TestLoadPhaseStats:
+    """Tests for src.phase_stats.load_phase_stats()."""
+
+    @pytest.fixture(scope="class")
+    def phase_data(self):
+        """Load phase stats once for the whole class — slow I/O, cached."""
+        return load_phase_stats()
+
+    def test_returns_dataframe(self, phase_data):
+        assert isinstance(phase_data, pd.DataFrame)
+
+    def test_has_player_name_column(self, phase_data):
+        assert "player_name" in phase_data.columns
+
+    def test_expected_phase_columns_present(self, phase_data):
+        expected = [
+            "pp_bat_sr", "middle_bat_sr", "death_bat_sr",
+            "pp_bowl_econ", "middle_bowl_econ", "death_bowl_econ",
+        ]
+        for col in expected:
+            assert col in phase_data.columns, f"Missing column: {col}"
+
+    def test_has_multiple_players(self, phase_data):
+        assert len(phase_data) > 50, "Expected >50 unique players with phase data"
+
+    def test_no_pakistani_players(self, phase_data):
+        """No Pakistani nationals should appear in the phase stats output."""
+        for pak_player in PAKISTANI_PLAYERS:
+            assert pak_player not in phase_data["player_name"].values, (
+                f"Pakistani player '{pak_player}' found in phase stats output"
+            )
+
+    def test_strike_rates_are_positive(self, phase_data):
+        """All non-null strike rates must be strictly positive."""
+        for col in ["pp_bat_sr", "middle_bat_sr", "death_bat_sr"]:
+            if col in phase_data.columns:
+                valid = phase_data[col].dropna()
+                assert (valid > 0).all(), f"Non-positive SR found in {col}"
+
+    def test_economies_are_positive(self, phase_data):
+        """All non-null economies must be strictly positive."""
+        for col in ["pp_bowl_econ", "middle_bowl_econ", "death_bowl_econ"]:
+            if col in phase_data.columns:
+                valid = phase_data[col].dropna()
+                assert (valid > 0).all(), f"Non-positive economy found in {col}"
+
+    def test_no_duplicate_players(self, phase_data):
+        """Each player should appear exactly once in the output."""
+        assert phase_data["player_name"].nunique() == len(phase_data), (
+            "Duplicate player entries found in phase stats"
+        )
+
+
+# ─────────────────────────────────────────────
+# Phase Score integration in calculate_fantasy
+# ─────────────────────────────────────────────
+
+class TestCalculateFantasyWithPhase:
+    """Tests that Phase_Score and specialist tags are correctly produced."""
+
+    @pytest.fixture
+    def pool_with_phase(self, minimal_player_pool):
+        """Add dummy phase stat columns to the standard fixture."""
+        df = minimal_player_pool.copy()
+        rng = np.random.default_rng(42)
+        # Give some players phase stats, leave others as NaN
+        n = len(df)
+        df["pp_bat_sr"] = np.where(rng.random(n) > 0.5, rng.uniform(100, 200, n), np.nan)
+        df["middle_bat_sr"] = np.where(rng.random(n) > 0.5, rng.uniform(90, 180, n), np.nan)
+        df["death_bat_sr"] = np.where(rng.random(n) > 0.5, rng.uniform(110, 220, n), np.nan)
+        df["pp_bowl_econ"] = np.where(rng.random(n) > 0.5, rng.uniform(5, 10, n), np.nan)
+        df["middle_bowl_econ"] = np.where(rng.random(n) > 0.5, rng.uniform(5, 11, n), np.nan)
+        df["death_bowl_econ"] = np.where(rng.random(n) > 0.5, rng.uniform(7, 14, n), np.nan)
+        return df
+
+    def test_phase_score_column_created(self, pool_with_phase):
+        result = calculate_fantasy(pool_with_phase)
+        assert "Phase_Score" in result.columns
+
+    def test_phase_score_non_negative(self, pool_with_phase):
+        result = calculate_fantasy(pool_with_phase)
+        assert (result["Phase_Score"] >= 0).all()
+
+    def test_specialist_tags_created(self, pool_with_phase):
+        result = calculate_fantasy(pool_with_phase)
+        for tag in ["pp_bat_specialist", "death_bat_specialist",
+                    "pp_bowl_specialist", "death_bowl_specialist"]:
+            assert tag in result.columns, f"Missing specialist tag: {tag}"
+
+    def test_specialist_tags_are_boolean(self, pool_with_phase):
+        result = calculate_fantasy(pool_with_phase)
+        for tag in ["pp_bat_specialist", "death_bat_specialist",
+                    "pp_bowl_specialist", "death_bowl_specialist"]:
+            assert result[tag].dtype == bool or result[tag].isin([True, False]).all(), (
+                f"Specialist tag {tag} is not boolean"
+            )
+
+    def test_fantasy_score_still_non_negative_with_phase(self, pool_with_phase):
+        result = calculate_fantasy(pool_with_phase)
+        assert (result["Fantasy_Score"] >= 0).all()
+
+    def test_no_nan_in_fantasy_scores_with_phase(self, pool_with_phase):
+        result = calculate_fantasy(pool_with_phase)
+        assert not result["Fantasy_Score"].isna().any()
